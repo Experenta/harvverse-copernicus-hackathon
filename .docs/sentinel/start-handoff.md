@@ -6,6 +6,12 @@ Use this payload as the temporary contract:
 
 - `.docs/sentinel/sample-copernicus-snapshot.json`
 
+Runtime surfaces now exist for integration work:
+
+- Public QR lot page route: `/lot/[code]`
+- n8n/WhatsApp development webhook: `/api/sentinel/alerts`
+- Snapshot read procedure: `lots.publicByCode({ code })`
+
 The real backend should keep the same field names while Javier replaces fixture values with live Copernicus signals and Base L2 writes.
 
 ## What Javier Must Hand Off First
@@ -15,6 +21,7 @@ Already enough for parallel work:
 - Snapshot shape with score, EUDR, seven variables, YieldPredict, hash, and chain fields.
 - Fixture payload for one realistic Honduran coffee lot.
 - Backend direction: `sourceMode` can be `fixture` first and `live` later.
+- Public QR route and webhook contract for frontend/n8n handoff.
 
 Still Javier-owned:
 
@@ -25,7 +32,7 @@ Still Javier-owned:
 
 ## Jesus Can Start
 
-Build frontend against `.docs/sentinel/sample-copernicus-snapshot.json`.
+Build frontend against `.docs/sentinel/sample-copernicus-snapshot.json` and the public `/lot/[code]` route.
 
 Priority screens:
 
@@ -53,7 +60,7 @@ Expected labels:
 
 ## Sheyla Can Start
 
-Build n8n and WhatsApp flows against `.docs/sentinel/sample-copernicus-snapshot.json`.
+Build n8n and WhatsApp flows against `.docs/sentinel/sample-copernicus-snapshot.json` and `/api/sentinel/alerts`.
 
 Priority flows:
 
@@ -88,8 +95,8 @@ YieldPredict: 66.8-87 qq. Evidence hash disponible para Base L2.
 
 ## What Still Blocks Final Integration
 
-- Jesus can mock UI now, but final tRPC wiring waits for the stable `copernicusSnapshot` API response.
-- Sheyla can build flows now, but production webhook wiring waits for the final event endpoint.
+- Jesus can build UI now; final polish waits for live snapshot data and Base L2 transaction values.
+- Sheyla can build flows now; production delivery waits for final phone credentials and n8n deployment.
 - Contract proof display can show `pending` now, but final proof waits for Base L2 metadata writes.
 
 ## Suggested Team Message
@@ -97,10 +104,9 @@ YieldPredict: 66.8-87 qq. Evidence hash disponible para Base L2.
 ```text
 Team: you can start now using `.docs/sentinel/sample-copernicus-snapshot.json` as the shared Copernicus payload.
 
-Jesus: build the QR lot page, Open Farms cards, and partner dashboard widgets from this JSON.
+Jesus: build from the public QR route `/lot/[code]`, plus Open Farms cards and partner dashboard widgets using this same JSON shape.
 
-Sheyla: build n8n/WhatsApp flows from this JSON using events like `score.calculated`, `eudr.blocked`, and `partner.snapshot_ready`.
+Sheyla: build n8n/WhatsApp flows against `/api/sentinel/alerts` using events like `score.calculated`, `eudr.blocked`, and `partner.snapshot_ready`.
 
 Javier will keep replacing fixture fields with live Sentinel-2, Sentinel-1, DEM, ERA5/EUDR data and Base L2 writes, but the payload shape should stay stable.
 ```
-

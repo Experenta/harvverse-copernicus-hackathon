@@ -8,6 +8,8 @@ Jesus and Sheyla can start from the current fixture payload:
 
 - `sample-copernicus-snapshot.json`
 - `start-handoff.md`
+- public route `/lot/[code]`
+- development webhook `/api/sentinel/alerts`
 
 Javier should keep the payload shape stable while replacing fixture values with live Copernicus signals and Base L2 metadata writes.
 
