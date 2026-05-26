@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 
 import {
+  copernicusSnapshots,
+  copernicusSourceModeEnum,
   farms,
   insertLotSchema,
   lotStatusEnum,
@@ -11,12 +13,14 @@ import {
   users,
 } from "@harvverse-copernicus-hackathon/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, eq, type SQL } from "drizzle-orm";
+import { and, desc, eq, type SQL } from "drizzle-orm";
 import { z } from "zod";
 
 import { protectedProcedure, publicProcedure, router } from "../index";
+import { buildFixtureCopernicusSnapshot } from "../lib/copernicus";
 
 const lotStatusSchema = z.enum(lotStatusEnum.enumValues);
+const copernicusSourceModeSchema = z.enum(copernicusSourceModeEnum.enumValues);
 const lotCreateStatusSchema = z.enum(["draft", "available"]);
 const lotCreateSchema = insertLotSchema.pick({
   farmId: true,
@@ -54,6 +58,77 @@ const planInputSchema = z.object({
   splitFarmerBps: z.number().int().min(0).max(10000),
   splitPartnerBps: z.number().int().min(0).max(10000).optional(),
 });
+
+type PublicLotRecord = typeof lots.$inferSelect & {
+  farm: typeof farms.$inferSelect;
+  plans: Array<typeof plans.$inferSelect>;
+};
+
+function toPublicLot(lot: PublicLotRecord) {
+  return {
+    id: lot.id,
+    code: lot.code,
+    farmName: lot.farmName,
+    region: lot.region,
+    country: lot.country,
+    variety: lot.variety,
+    process: lot.process,
+    altitudeMasl: lot.altitudeMasl,
+    areaManzanas: lot.areaManzanas,
+    gpsLat: lot.gpsLat,
+    gpsLng: lot.gpsLng,
+    numTrees: lot.numTrees,
+    plantAgeYears: lot.plantAgeYears,
+    scaScoreTenths: lot.scaScoreTenths,
+    harvestYear: lot.harvestYear,
+    cycleNotes: lot.cycleNotes,
+    profile: lot.profile,
+    summary: lot.summary,
+    coverImages: lot.coverImages,
+    status: lot.status,
+    riskScore: lot.riskScore,
+    riskTier: lot.riskTier,
+    eudrStatus: lot.eudrStatus,
+    scoreHash: lot.scoreHash,
+    scoreVersion: lot.scoreVersion,
+    scoreUpdatedAt: lot.scoreUpdatedAt,
+    polygon: lot.polygon,
+    onchainLotId: lot.onchainLotId,
+    plans: lot.plans.map((plan) => ({
+      id: plan.id,
+      planCode: plan.planCode,
+      version: plan.version,
+      status: plan.status,
+      ticketCents: plan.ticketCents,
+      priceCentsPerLb: plan.priceCentsPerLb,
+      priceFloorCentsPerLb: plan.priceFloorCentsPerLb,
+      projectedYieldY1TenthsQq: plan.projectedYieldY1TenthsQq,
+      yieldCapY1TenthsQq: plan.yieldCapY1TenthsQq,
+      splitFarmerBps: plan.splitFarmerBps,
+      splitPartnerBps: plan.splitPartnerBps,
+      planHash: plan.planHash,
+      termsSummary: plan.termsSummary,
+    })),
+    farm: {
+      id: lot.farm.id,
+      name: lot.farm.name,
+      country: lot.farm.country,
+      region: lot.farm.region,
+      altitudeMasl: lot.farm.altitudeMasl,
+      totalArea: lot.farm.totalArea,
+      areaManzanas: lot.farm.areaManzanas,
+      varieties: lot.farm.varieties,
+      description: lot.farm.description,
+      certifications: lot.farm.certifications,
+      photoUrls: lot.farm.photoUrls,
+      latitude: lot.farm.latitude,
+      longitude: lot.farm.longitude,
+      polygon: lot.farm.polygon,
+      coeScore: lot.farm.coeScore,
+      verified: lot.farm.verified,
+    },
+  };
+}
 
 export const lotsRouter = router({
   list: publicProcedure
@@ -162,6 +237,136 @@ export const lotsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Lot not found" });
       }
       return lot;
+    }),
+
+  publicByCode: publicProcedure
+    .input(z.object({ code: z.string().trim().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const lot = await ctx.db.query.lots.findFirst({
+        where: eq(lots.code, input.code),
+        with: {
+          farm: true,
+          plans: true,
+        },
+      });
+      if (!lot || lot.status !== "available") {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Lot not found" });
+      }
+
+      const snapshot = await ctx.db.query.copernicusSnapshots.findFirst({
+        where: eq(copernicusSnapshots.lotId, lot.id),
+        orderBy: [desc(copernicusSnapshots.createdAt)],
+      });
+
+      return { lot: toPublicLot(lot), snapshot };
+    }),
+
+  copernicusSnapshot: publicProcedure
+    .input(z.object({ lotId: z.number().int().positive() }))
+    .query(async ({ ctx, input }) => {
+      const lot = await ctx.db.query.lots.findFirst({
+        where: eq(lots.id, input.lotId),
+        with: {
+          farm: true,
+          plans: true,
+        },
+      });
+      if (!lot || lot.status !== "available") {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Lot not found" });
+      }
+
+      const snapshot = await ctx.db.query.copernicusSnapshots.findFirst({
+        where: eq(copernicusSnapshots.lotId, input.lotId),
+        orderBy: [desc(copernicusSnapshots.createdAt)],
+      });
+
+      return { lot: toPublicLot(lot), snapshot };
+    }),
+
+  computeCopernicusSnapshot: protectedProcedure
+    .input(
+      z.object({
+        lotId: z.number().int().positive(),
+        sourceMode: copernicusSourceModeSchema.default("fixture"),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const requestingUser = await ctx.db.query.users.findFirst({
+        where: eq(users.clerkId, ctx.clerkId),
+      });
+      if (!requestingUser) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found" });
+      }
+
+      const lot = await ctx.db.query.lots.findFirst({
+        where: eq(lots.id, input.lotId),
+        with: { farm: true },
+      });
+      if (!lot) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Lot not found" });
+      }
+      if (lot.farm.farmerId !== requestingUser.id && requestingUser.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You cannot score this lot" });
+      }
+
+      if (input.sourceMode === "live") {
+        throw new TRPCError({
+          code: "NOT_IMPLEMENTED",
+          message: "Live Copernicus scoring will use this same snapshot contract.",
+        });
+      }
+
+      const snapshot = buildFixtureCopernicusSnapshot(lot);
+
+      return ctx.db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(copernicusSnapshots)
+          .values({
+            lotId: snapshot.lotId,
+            farmId: snapshot.farmId,
+            sourceMode: snapshot.sourceMode,
+            scoreVersion: snapshot.scoreVersion,
+            riskScore: snapshot.riskScore,
+            riskTier: snapshot.riskTier,
+            eudrStatus: snapshot.eudrStatus,
+            eligibleForInvestment: snapshot.eligibleForInvestment,
+            variables: snapshot.variables,
+            polygon: snapshot.polygon,
+            sentinel2: snapshot.sentinel2,
+            sentinel1: snapshot.sentinel1,
+            dem: snapshot.dem,
+            era5: snapshot.era5,
+            eudr: snapshot.eudr,
+            yieldPredict: snapshot.yieldPredict,
+            chain: snapshot.chain,
+            signedPayload: snapshot.signedPayload,
+            scoreHash: snapshot.scoreHash,
+          })
+          .returning();
+
+        if (!created) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Snapshot insert returned no row",
+          });
+        }
+
+        await tx
+          .update(lots)
+          .set({
+            riskScore: snapshot.riskScore,
+            riskTier: snapshot.riskTier,
+            eudrStatus: snapshot.eudrStatus,
+            scoreHash: snapshot.scoreHash,
+            scoreVersion: snapshot.scoreVersion,
+            scoreUpdatedAt: created.createdAt,
+            copernicusSnapshotId: created.id,
+            updatedAt: new Date(),
+          })
+          .where(eq(lots.id, snapshot.lotId));
+
+        return { snapshot: created, payload: snapshot };
+      });
     }),
 
   create: protectedProcedure

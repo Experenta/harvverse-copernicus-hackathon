@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	type AnyPgColumn,
 	boolean,
 	index,
 	integer,
@@ -121,6 +122,25 @@ export const agentEventTypeEnum = pgEnum("agent_event_type", [
 	"whatif_complete",
 	"fallback_used",
 	"error",
+]);
+
+export const copernicusSourceModeEnum = pgEnum("copernicus_source_mode", [
+	"fixture",
+	"live",
+]);
+
+export const riskTierEnum = pgEnum("risk_tier", [
+	"excellent",
+	"good",
+	"moderate",
+	"high_risk",
+	"not_viable",
+]);
+
+export const eudrStatusEnum = pgEnum("eudr_status", [
+	"verified",
+	"non_compliant",
+	"unknown",
 ]);
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -295,6 +315,15 @@ export const lots = pgTable(
 		coverImages: text("cover_images").array(),
 		status: lotStatusEnum("status").notNull().default("available"),
 		activePlanCode: varchar("active_plan_code", { length: 30 }),
+		riskScore: integer("risk_score"),
+		riskTier: riskTierEnum("risk_tier"),
+		eudrStatus: eudrStatusEnum("eudr_status"),
+		scoreHash: varchar("score_hash", { length: 64 }),
+		scoreVersion: varchar("score_version", { length: 40 }),
+		scoreUpdatedAt: timestamp("score_updated_at"),
+		copernicusSnapshotId: integer("copernicus_snapshot_id").references(
+			(): AnyPgColumn => copernicusSnapshots.id,
+		),
 		polygon: jsonb("polygon"),
 		onchainLotId: integer("onchain_lot_id"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -304,6 +333,46 @@ export const lots = pgTable(
 		farmIdIdx: index("lots_farm_id_idx").on(table.farmId),
 		codeIdx: index("lots_code_idx").on(table.code),
 		statusIdx: index("lots_status_idx").on(table.status),
+	}),
+);
+
+export const copernicusSnapshots = pgTable(
+	"copernicus_snapshots",
+	{
+		id: serial("id").primaryKey(),
+		lotId: integer("lot_id")
+			.notNull()
+			.references((): AnyPgColumn => lots.id),
+		farmId: integer("farm_id")
+			.notNull()
+			.references(() => farms.id),
+		sourceMode: copernicusSourceModeEnum("source_mode").notNull(),
+		scoreVersion: varchar("score_version", { length: 40 }).notNull(),
+		riskScore: integer("risk_score").notNull(),
+		riskTier: riskTierEnum("risk_tier").notNull(),
+		eudrStatus: eudrStatusEnum("eudr_status").notNull(),
+		eligibleForInvestment: boolean("eligible_for_investment").notNull(),
+		variables: jsonb("variables").notNull(),
+		polygon: jsonb("polygon"),
+		sentinel2: jsonb("sentinel2").notNull(),
+		sentinel1: jsonb("sentinel1").notNull(),
+		dem: jsonb("dem").notNull(),
+		era5: jsonb("era5").notNull(),
+		eudr: jsonb("eudr").notNull(),
+		yieldPredict: jsonb("yield_predict").notNull(),
+		chain: jsonb("chain").notNull(),
+		signedPayload: jsonb("signed_payload").notNull(),
+		scoreHash: varchar("score_hash", { length: 64 }).notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(table) => ({
+		lotCreatedIdx: index("copernicus_snapshots_lot_created_idx").on(
+			table.lotId,
+			table.createdAt,
+		),
+		scoreHashIdx: index("copernicus_snapshots_score_hash_idx").on(
+			table.scoreHash,
+		),
 	}),
 );
 
@@ -738,6 +807,7 @@ export const farmsRelations = relations(farms, ({ one, many }) => ({
 	}),
 	lots: many(lots),
 	images: many(farmImages),
+	copernicusSnapshots: many(copernicusSnapshots),
 }));
 
 export const farmImagesRelations = relations(farmImages, ({ one }) => ({
@@ -755,7 +825,22 @@ export const lotsRelations = relations(lots, ({ one, many }) => ({
 	plans: many(plans),
 	proposals: many(proposals),
 	partnerships: many(partnerships),
+	copernicusSnapshots: many(copernicusSnapshots),
 }));
+
+export const copernicusSnapshotsRelations = relations(
+	copernicusSnapshots,
+	({ one }) => ({
+		lot: one(lots, {
+			fields: [copernicusSnapshots.lotId],
+			references: [lots.id],
+		}),
+		farm: one(farms, {
+			fields: [copernicusSnapshots.farmId],
+			references: [farms.id],
+		}),
+	}),
+);
 
 export const plansRelations = relations(plans, ({ one, many }) => ({
 	lot: one(lots, {
@@ -946,6 +1031,19 @@ export const insertLotSchema = createInsertSchema(lots).omit({
 export const selectLotSchema = createSelectSchema(lots);
 export type Lot = typeof lots.$inferSelect;
 export type InsertLot = z.infer<typeof insertLotSchema>;
+
+export const insertCopernicusSnapshotSchema = createInsertSchema(
+	copernicusSnapshots,
+).omit({
+	id: true,
+	createdAt: true,
+});
+export const selectCopernicusSnapshotSchema =
+	createSelectSchema(copernicusSnapshots);
+export type CopernicusSnapshot = typeof copernicusSnapshots.$inferSelect;
+export type InsertCopernicusSnapshot = z.infer<
+	typeof insertCopernicusSnapshotSchema
+>;
 
 export const insertPlanSchema = createInsertSchema(plans).omit({
 	id: true,
