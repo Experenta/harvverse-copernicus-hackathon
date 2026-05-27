@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
 import {
+  fetchCopernicusDemElevation,
+  summarizeCopernicusDem,
+} from "./copernicus/dem";
+import {
   centroidFromPolygon,
   fetchEra5ClimateMonths,
   summarizeEra5ClimateMonths,
@@ -267,6 +271,12 @@ function scoreMeanTemperature(meanC: number): number {
   if (meanC <= 24) return 85;
   if (meanC <= 26) return lerp(meanC, 24, 26, 85, 60);
   return 20;
+}
+
+function scoreTerrainSuitability(value: "excellent" | "good" | "moderate"): number {
+  if (value === "excellent") return 90;
+  if (value === "good") return 75;
+  return 45;
 }
 
 function lerp(value: number, inMin: number, inMax: number, outMin: number, outMax: number) {
@@ -582,10 +592,14 @@ export async function buildLiveCopernicusSnapshot(
 
   const fixture = buildFixtureCopernicusSnapshot(lot);
   const climateCentroid = centroidFromPolygon(polygon);
-  const [ndviMonths, sarQuarters, climateMonths] = await Promise.all([
+  const [ndviMonths, sarQuarters, climateMonths, demAltitude] = await Promise.all([
     fetchSentinel2NdviMonths({ token, polygon }),
     fetchSentinel1SarQuarters({ token, polygon }),
     fetchEra5ClimateMonths({
+      lat: climateCentroid.lat,
+      lng: climateCentroid.lng,
+    }),
+    fetchCopernicusDemElevation({
       lat: climateCentroid.lat,
       lng: climateCentroid.lng,
     }),
@@ -609,6 +623,12 @@ export async function buildLiveCopernicusSnapshot(
 
   const sentinel1Summary = summarizeSentinel1SarQuarters(sarQuarters);
   const era5Summary = summarizeEra5ClimateMonths(climateMonths);
+  const demSummary = summarizeCopernicusDem(demAltitude);
+  const selfReportedAltitude = toNumber(lot.altitudeMasl);
+  const altitudeDelta =
+    selfReportedAltitude == null
+      ? null
+      : Math.abs(selfReportedAltitude - demSummary.altitudeMasl);
   const currentNdvi = usableMonths.at(-1)?.ndvi ?? 0;
   const twoYearAverageNdvi = Number(
     (
@@ -662,6 +682,13 @@ export async function buildLiveCopernicusSnapshot(
         score: Math.round(scoreMeanTemperature(era5Summary.meanTemperatureC)),
       };
     }
+    if (variable.key === "polygon_terrain_suitability") {
+      return {
+        ...variable,
+        value: `${demSummary.altitudeMasl} masl / ${fixture.dem.areaManzanas?.toFixed(1) ?? "unknown"} manzanas`,
+        score: scoreTerrainSuitability(demSummary.terrainSuitability),
+      };
+    }
     if (variable.key === "eudr_land_cover_gate") {
       return {
         ...variable,
@@ -710,19 +737,37 @@ export async function buildLiveCopernicusSnapshot(
             notes:
               "Live climate uses the Open-Meteo Archive API path for ERA5 reanalysis daily precipitation and temperature aggregates.",
           }
+      : source.key === "dem"
+        ? {
+            ...source,
+            provider: "Open-Meteo elevation endpoint",
+            dataset: "Copernicus DEM GLO-90",
+            mode: "live" as const,
+            dateRange: {
+              from: "2020-01-01",
+              to: source.dateRange.to,
+            },
+            resolution: "90m",
+            notes:
+              "Live altitude uses Open-Meteo's Copernicus DEM GLO-90 elevation endpoint as a centroid fallback; direct CDSE DEM remains a future hardening path.",
+          }
       : source,
   );
   const liveConfidence = usableMonths.length >= 18 ? "high" as const : "medium" as const;
   const combinedLiveConfidence = lowerConfidence(
-    lowerConfidence(liveConfidence, sentinel1Summary.confidence),
-    era5Summary.confidence,
+    lowerConfidence(
+      lowerConfidence(liveConfidence, sentinel1Summary.confidence),
+      era5Summary.confidence,
+    ),
+    demSummary.confidence,
   );
   const liveCompleteness = Number(
     Math.min(
       0.95,
       (usableMonths.length / 24) * 0.55 +
-        (usableSarQuarters.length / 8) * 0.2 +
-        (climateMonths.length / 24) * 0.25,
+        (usableSarQuarters.length / 8) * 0.18 +
+        (climateMonths.length / 24) * 0.22 +
+        0.05,
     ).toFixed(2),
   );
   const dataQuality: CopernicusDataQuality = {
@@ -730,7 +775,11 @@ export async function buildLiveCopernicusSnapshot(
     confidence: lowerConfidence(combinedLiveConfidence, parcelScale.confidence),
     completeness: liveCompleteness,
     warnings: [
-      "Sentinel-2 NDVI, Sentinel-1 SAR, and ERA5 climate are live; DEM and EUDR are still fixture or pending fields.",
+      "Sentinel-2 NDVI, Sentinel-1 SAR, ERA5 climate, and Copernicus DEM altitude are live; EUDR is still pending.",
+      "DEM altitude uses Open-Meteo's Copernicus DEM GLO-90 endpoint, not direct CDSE DEM.",
+      ...(altitudeDelta != null && altitudeDelta > 300
+        ? [`Stored altitude differs from DEM by ${Math.round(altitudeDelta)} masl; check the demo polygon or lot metadata.`]
+        : []),
       ...(parcelScale.warning ? [parcelScale.warning] : []),
     ],
     parcelScale,
@@ -754,6 +803,13 @@ export async function buildLiveCopernicusSnapshot(
     sentinel2: historicalSeries,
     sentinel1: sarQuarters,
     era5: climateMonths,
+    dem: {
+      provider: demSummary.provider,
+      altitudeMasl: demSummary.altitudeMasl,
+      terrainSuitability: demSummary.terrainSuitability,
+      terrainRisk: demSummary.terrainRisk,
+      limitations: demSummary.limitations,
+    },
   });
   const signature = hashJson({
     signer: LIVE_SIGNER,
@@ -795,16 +851,21 @@ export async function buildLiveCopernicusSnapshot(
       seasonalDistribution: era5Summary.seasonalDistribution,
       waterStress: era5Summary.waterStress,
     },
+    dem: {
+      altitudeMasl: demSummary.altitudeMasl,
+      areaManzanas: fixture.dem.areaManzanas,
+      terrainSuitability: demSummary.terrainSuitability,
+    },
     eudr: {
       ...fixture.eudr,
       riskLevel: "review_required",
       requiresManualReview: true,
       confidence: "medium",
       reasons: [
-        "Sentinel-2 NDVI, Sentinel-1 SAR, and ERA5 climate are live, but JRC forest-loss screening is not implemented yet.",
+        "Sentinel-2 NDVI, Sentinel-1 SAR, ERA5 climate, and Copernicus DEM altitude are live, but JRC forest-loss screening is not implemented yet.",
       ],
       limitations: [
-        "This slice verifies vegetation, radar, and climate evidence only; it is not a final EUDR decision.",
+        "This slice verifies vegetation, radar, climate, and centroid altitude evidence only; it is not a final EUDR decision.",
       ],
     },
     evidenceHash,
