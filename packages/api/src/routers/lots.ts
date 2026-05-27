@@ -201,7 +201,13 @@ export const lotsRouter = router({
       ) {
         throw new TRPCError({ code: "FORBIDDEN", message: "You cannot view this lot" });
       }
-      return lot;
+
+      const snapshot = await ctx.db.query.copernicusSnapshots.findFirst({
+        where: eq(copernicusSnapshots.lotId, lot.id),
+        orderBy: [desc(copernicusSnapshots.createdAt)],
+      });
+
+      return { ...lot, copernicusSnapshot: snapshot };
     }),
 
   byFarmId: protectedProcedure
