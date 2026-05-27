@@ -4,6 +4,7 @@ import {
   fetchCopernicusDemElevation,
   summarizeCopernicusDem,
 } from "./copernicus/dem";
+import { buildEudrGate } from "./copernicus/eudr";
 import {
   centroidFromPolygon,
   fetchEra5ClimateMonths,
@@ -624,6 +625,7 @@ export async function buildLiveCopernicusSnapshot(
   const sentinel1Summary = summarizeSentinel1SarQuarters(sarQuarters);
   const era5Summary = summarizeEra5ClimateMonths(climateMonths);
   const demSummary = summarizeCopernicusDem(demAltitude);
+  const eudrGate = buildEudrGate();
   const selfReportedAltitude = toNumber(lot.altitudeMasl);
   const altitudeDelta =
     selfReportedAltitude == null
@@ -692,16 +694,21 @@ export async function buildLiveCopernicusSnapshot(
     if (variable.key === "eudr_land_cover_gate") {
       return {
         ...variable,
-        value: "unknown",
-        score: 50,
+        value: eudrGate.status,
+        score:
+          eudrGate.status === "verified"
+            ? 100
+            : eudrGate.status === "non_compliant"
+              ? 0
+              : 50,
       };
     }
     return variable;
   });
   const riskScore = weightedScore(variables);
   const riskTier = riskTierFor(riskScore);
-  const eudrStatus: EudrStatus = "unknown";
-  const eligibleForInvestment = false;
+  const eudrStatus: EudrStatus = eudrGate.status;
+  const eligibleForInvestment = eudrGate.eligibleForMarketplace && riskScore >= 60;
   const parcelScale = buildParcelScaleQuality(toNumber(lot.areaManzanas) ?? fixture.dem.areaManzanas);
   const sources = fixture.sources.map((source) =>
     source.key === "sentinel-2"
@@ -775,7 +782,7 @@ export async function buildLiveCopernicusSnapshot(
     confidence: lowerConfidence(combinedLiveConfidence, parcelScale.confidence),
     completeness: liveCompleteness,
     warnings: [
-      "Sentinel-2 NDVI, Sentinel-1 SAR, ERA5 climate, and Copernicus DEM altitude are live; EUDR is still pending.",
+      "Sentinel-2 NDVI, Sentinel-1 SAR, ERA5 climate, and Copernicus DEM altitude are live; EUDR evidence is still pending.",
       "DEM altitude uses Open-Meteo's Copernicus DEM GLO-90 endpoint, not direct CDSE DEM.",
       ...(altitudeDelta != null && altitudeDelta > 300
         ? [`Stored altitude differs from DEM by ${Math.round(altitudeDelta)} masl; check the demo polygon or lot metadata.`]
@@ -857,16 +864,17 @@ export async function buildLiveCopernicusSnapshot(
       terrainSuitability: demSummary.terrainSuitability,
     },
     eudr: {
-      ...fixture.eudr,
-      riskLevel: "review_required",
-      requiresManualReview: true,
-      confidence: "medium",
-      reasons: [
-        "Sentinel-2 NDVI, Sentinel-1 SAR, ERA5 climate, and Copernicus DEM altitude are live, but JRC forest-loss screening is not implemented yet.",
-      ],
+      baseline: eudrGate.baseline,
+      riskLevel: eudrGate.riskLevel,
+      post2020DeforestationDetected: eudrGate.post2020DeforestationDetected,
+      requiresManualReview: eudrGate.requiresManualReview,
+      confidence: eudrGate.confidence,
+      reasons: eudrGate.reasons,
       limitations: [
+        ...eudrGate.limitations,
         "This slice verifies vegetation, radar, climate, and centroid altitude evidence only; it is not a final EUDR decision.",
       ],
+      evidenceDateRange: eudrGate.evidenceDateRange,
     },
     evidenceHash,
     scoreHash: evidenceHash,

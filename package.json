@@ -11,6 +11,7 @@
     "build": "turbo run build",
     "check-types": "turbo run check-types",
     "verify:dem": "node --import tsx scripts/verify-dem-live.ts",
+    "verify:eudr": "node --import tsx scripts/verify-eudr-gate.ts",
     "verify:era5": "node --import tsx scripts/verify-era5-live.ts",
     "verify:sentinel1": "node --import tsx scripts/verify-sentinel-1-live.ts",
     "verify:sentinel2": "node --import tsx scripts/verify-sentinel-2-live.ts",
