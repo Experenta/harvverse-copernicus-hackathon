@@ -5,6 +5,8 @@ export interface SentinelHubCredentials {
 
 const SENTINEL_HUB_TOKEN_URL =
   "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token";
+export const SENTINEL_HUB_STATS_URL =
+  "https://sh.dataspace.copernicus.eu/api/v1/statistics";
 
 export function getSentinelHubCredentials(env: {
   SENTINEL_HUB_CLIENT_ID?: string;
