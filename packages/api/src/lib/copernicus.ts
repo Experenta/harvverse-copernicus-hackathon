@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
 import {
+  fetchSentinel1SarQuarters,
+  summarizeSentinel1SarQuarters,
+} from "./copernicus/sentinel-1";
+import {
   fetchSentinel2NdviMonths,
   type Sentinel2Polygon,
 } from "./copernicus/sentinel-2";
@@ -164,9 +168,9 @@ interface SnapshotLotInput {
 }
 
 const SCORE_VERSION = "sentinel-v0.1.0";
-const SENTINEL2_LIVE_SCORE_VERSION = "sentinel-s2-live-v0.1.0";
+const LIVE_SCORE_VERSION = "sentinel-live-v0.2.0";
 const DEMO_SIGNER = "harvverse-sentinel-demo-signer";
-const SENTINEL2_LIVE_SIGNER = "harvverse-sentinel-2-worker";
+const LIVE_SIGNER = "harvverse-sentinel-worker";
 const HECTARES_PER_MANZANA = 0.6989;
 
 function toNumber(value: string | number | null | undefined): number | null {
@@ -230,6 +234,13 @@ function scoreNdviStability(values: number[]): number {
   if (cv <= 0.05) return 100;
   if (cv >= 0.3) return 0;
   return 100 - ((cv - 0.05) / 0.25) * 100;
+}
+
+function scoreSentinel1Moisture(value: "low" | "medium" | "high" | "unknown"): number {
+  if (value === "medium") return 82;
+  if (value === "high") return 70;
+  if (value === "low") return 55;
+  return 50;
 }
 
 function weightedScore(variables: SentinelScoreVariable[]): number {
@@ -529,25 +540,35 @@ export function buildFixtureCopernicusSnapshot(
   };
 }
 
-export async function buildSentinel2CopernicusSnapshot(
+export async function buildLiveCopernicusSnapshot(
   lot: SnapshotLotInput,
   token: string,
 ): Promise<CopernicusLotSnapshot> {
   const polygon = asSentinel2Polygon(lot.polygon);
   if (!polygon) {
-    throw new Error("Live Sentinel-2 scoring requires a lot polygon.");
+    throw new Error("Live Copernicus scoring requires a lot polygon.");
   }
 
   const fixture = buildFixtureCopernicusSnapshot(lot);
-  const ndviMonths = await fetchSentinel2NdviMonths({ token, polygon });
+  const [ndviMonths, sarQuarters] = await Promise.all([
+    fetchSentinel2NdviMonths({ token, polygon }),
+    fetchSentinel1SarQuarters({ token, polygon }),
+  ]);
   const usableMonths = ndviMonths.filter(
     (month): month is typeof month & { ndvi: number } => month.ndvi != null,
+  );
+  const usableSarQuarters = sarQuarters.filter(
+    (quarter) => quarter.vv !== null && quarter.vh !== null,
   );
 
   if (usableMonths.length === 0) {
     throw new Error("Sentinel-2 returned no usable NDVI observations for this polygon.");
   }
+  if (usableSarQuarters.length === 0) {
+    throw new Error("Sentinel-1 returned no usable VV/VH observations for this polygon.");
+  }
 
+  const sentinel1Summary = summarizeSentinel1SarQuarters(sarQuarters);
   const currentNdvi = usableMonths.at(-1)?.ndvi ?? 0;
   const twoYearAverageNdvi = Number(
     (
@@ -580,6 +601,13 @@ export async function buildSentinel2CopernicusSnapshot(
         score: ndviStabilityScore,
       };
     }
+    if (variable.key === "sentinel1_moisture") {
+      return {
+        ...variable,
+        value: sentinel1Summary.moistureProxy,
+        score: scoreSentinel1Moisture(sentinel1Summary.moistureProxy),
+      };
+    }
     if (variable.key === "eudr_land_cover_gate") {
       return {
         ...variable,
@@ -606,15 +634,33 @@ export async function buildSentinel2CopernicusSnapshot(
           notes:
             "Live NDVI uses Sentinel-2 L2A Statistics API with SCL cloud and shadow masking.",
         }
+      : source.key === "sentinel-1"
+        ? {
+            ...source,
+            mode: "live" as const,
+            dateRange: {
+              from: sarQuarters[0]?.quarter ?? source.dateRange.from,
+              to: sarQuarters.at(-1)?.quarter ?? source.dateRange.to,
+            },
+            notes:
+              "Live SAR uses Sentinel-1 GRD IW dual-polarization VV/VH quarterly backscatter through the Sentinel Hub Statistics API.",
+          }
       : source,
   );
   const liveConfidence = usableMonths.length >= 18 ? "high" as const : "medium" as const;
+  const combinedLiveConfidence = lowerConfidence(liveConfidence, sentinel1Summary.confidence);
+  const liveCompleteness = Number(
+    Math.min(
+      0.95,
+      (usableMonths.length / 24) * 0.75 + (usableSarQuarters.length / 8) * 0.25,
+    ).toFixed(2),
+  );
   const dataQuality: CopernicusDataQuality = {
     ...fixture.dataQuality,
-    confidence: lowerConfidence(liveConfidence, parcelScale.confidence),
-    completeness: Number(Math.min(0.95, usableMonths.length / 24).toFixed(2)),
+    confidence: lowerConfidence(combinedLiveConfidence, parcelScale.confidence),
+    completeness: liveCompleteness,
     warnings: [
-      "Sentinel-2 NDVI is live; Sentinel-1, ERA5, DEM, and EUDR are still fixture or pending fields.",
+      "Sentinel-2 NDVI and Sentinel-1 SAR are live; ERA5, DEM, and EUDR are still fixture or pending fields.",
       ...(parcelScale.warning ? [parcelScale.warning] : []),
     ],
     parcelScale,
@@ -623,7 +669,7 @@ export async function buildSentinel2CopernicusSnapshot(
     lotId: lot.id,
     farmId: lot.farmId,
     lotCode: lot.code ?? null,
-    scoreVersion: SENTINEL2_LIVE_SCORE_VERSION,
+    scoreVersion: LIVE_SCORE_VERSION,
     riskScore,
     riskTier,
     eudrStatus,
@@ -636,16 +682,17 @@ export async function buildSentinel2CopernicusSnapshot(
     ...unsignedPayload,
     polygon: lot.polygon ?? null,
     sentinel2: historicalSeries,
+    sentinel1: sarQuarters,
   });
   const signature = hashJson({
-    signer: SENTINEL2_LIVE_SIGNER,
+    signer: LIVE_SIGNER,
     evidenceHash,
   });
 
   return {
     ...fixture,
     sourceMode: "live",
-    scoreVersion: SENTINEL2_LIVE_SCORE_VERSION,
+    scoreVersion: LIVE_SCORE_VERSION,
     riskScore,
     riskTier,
     eudrStatus,
@@ -659,16 +706,28 @@ export async function buildSentinel2CopernicusSnapshot(
       historicalSeries,
       cloudFilter: "Sentinel-2 L2A SCL cloud and shadow mask",
     },
+    sentinel1: {
+      vv: sentinel1Summary.vv ?? fixture.sentinel1.vv,
+      vh: sentinel1Summary.vh ?? fixture.sentinel1.vh,
+      moistureProxy:
+        sentinel1Summary.moistureProxy === "unknown"
+          ? fixture.sentinel1.moistureProxy
+          : sentinel1Summary.moistureProxy,
+      structuralChangeSignal:
+        sentinel1Summary.structuralChangeSignal === "unknown"
+          ? fixture.sentinel1.structuralChangeSignal
+          : sentinel1Summary.structuralChangeSignal,
+    },
     eudr: {
       ...fixture.eudr,
       riskLevel: "review_required",
       requiresManualReview: true,
       confidence: "medium",
       reasons: [
-        "Sentinel-2 NDVI is live, but JRC forest-loss screening is not implemented yet.",
+        "Sentinel-2 NDVI and Sentinel-1 SAR are live, but JRC forest-loss screening is not implemented yet.",
       ],
       limitations: [
-        "This slice verifies vegetation evidence only; it is not a final EUDR decision.",
+        "This slice verifies vegetation and radar evidence only; it is not a final EUDR decision.",
       ],
     },
     evidenceHash,
@@ -676,7 +735,7 @@ export async function buildSentinel2CopernicusSnapshot(
     signedPayload: {
       payload: unsignedPayload,
       signature,
-      signer: SENTINEL2_LIVE_SIGNER,
+      signer: LIVE_SIGNER,
     },
   };
 }

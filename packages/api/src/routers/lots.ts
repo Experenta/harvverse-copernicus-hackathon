@@ -24,7 +24,7 @@ import {
 } from "../lib/copernicus/sentinel-hub";
 import {
   buildFixtureCopernicusSnapshot,
-  buildSentinel2CopernicusSnapshot,
+  buildLiveCopernicusSnapshot,
 } from "../lib/copernicus";
 
 const lotStatusSchema = z.enum(lotStatusEnum.enumValues);
@@ -329,7 +329,7 @@ export const lotsRouter = router({
                 });
               }
               const token = await getSentinelHubToken(credentials);
-              return buildSentinel2CopernicusSnapshot(lot, token);
+              return buildLiveCopernicusSnapshot(lot, token);
             })().catch((error: unknown) => {
               if (error instanceof TRPCError) throw error;
               throw new TRPCError({
@@ -337,7 +337,7 @@ export const lotsRouter = router({
                 message:
                   error instanceof Error
                     ? error.message
-                    : "Live Sentinel-2 Copernicus scoring failed.",
+                    : "Live Copernicus scoring failed.",
               });
             })
           : buildFixtureCopernicusSnapshot(lot);
