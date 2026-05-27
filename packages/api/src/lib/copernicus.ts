@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
 import {
+  centroidFromPolygon,
+  fetchEra5ClimateMonths,
+  summarizeEra5ClimateMonths,
+} from "./copernicus/era5";
+import {
   fetchSentinel1SarQuarters,
   summarizeSentinel1SarQuarters,
 } from "./copernicus/sentinel-1";
@@ -241,6 +246,32 @@ function scoreSentinel1Moisture(value: "low" | "medium" | "high" | "unknown"): n
   if (value === "high") return 70;
   if (value === "low") return 55;
   return 50;
+}
+
+function scoreAnnualRainfall(annualMm: number): number {
+  if (annualMm < 800) return 0;
+  if (annualMm <= 1200) return lerp(annualMm, 800, 1200, 0, 60);
+  if (annualMm <= 1500) return lerp(annualMm, 1200, 1500, 60, 85);
+  if (annualMm <= 2000) return 100;
+  if (annualMm <= 2500) return lerp(annualMm, 2000, 2500, 100, 70);
+  if (annualMm <= 3000) return lerp(annualMm, 2500, 3000, 70, 40);
+  if (annualMm <= 3500) return lerp(annualMm, 3000, 3500, 40, 20);
+  return 0;
+}
+
+function scoreMeanTemperature(meanC: number): number {
+  if (meanC < 12) return 0;
+  if (meanC <= 15) return lerp(meanC, 12, 15, 0, 50);
+  if (meanC <= 18) return 80;
+  if (meanC <= 22) return 100;
+  if (meanC <= 24) return 85;
+  if (meanC <= 26) return lerp(meanC, 24, 26, 85, 60);
+  return 20;
+}
+
+function lerp(value: number, inMin: number, inMax: number, outMin: number, outMax: number) {
+  const ratio = (value - inMin) / (inMax - inMin);
+  return outMin + ratio * (outMax - outMin);
 }
 
 function weightedScore(variables: SentinelScoreVariable[]): number {
@@ -550,9 +581,14 @@ export async function buildLiveCopernicusSnapshot(
   }
 
   const fixture = buildFixtureCopernicusSnapshot(lot);
-  const [ndviMonths, sarQuarters] = await Promise.all([
+  const climateCentroid = centroidFromPolygon(polygon);
+  const [ndviMonths, sarQuarters, climateMonths] = await Promise.all([
     fetchSentinel2NdviMonths({ token, polygon }),
     fetchSentinel1SarQuarters({ token, polygon }),
+    fetchEra5ClimateMonths({
+      lat: climateCentroid.lat,
+      lng: climateCentroid.lng,
+    }),
   ]);
   const usableMonths = ndviMonths.filter(
     (month): month is typeof month & { ndvi: number } => month.ndvi != null,
@@ -567,8 +603,12 @@ export async function buildLiveCopernicusSnapshot(
   if (usableSarQuarters.length === 0) {
     throw new Error("Sentinel-1 returned no usable VV/VH observations for this polygon.");
   }
+  if (climateMonths.length < 12) {
+    throw new Error("ERA5 archive returned fewer than 12 usable climate months for this polygon.");
+  }
 
   const sentinel1Summary = summarizeSentinel1SarQuarters(sarQuarters);
+  const era5Summary = summarizeEra5ClimateMonths(climateMonths);
   const currentNdvi = usableMonths.at(-1)?.ndvi ?? 0;
   const twoYearAverageNdvi = Number(
     (
@@ -608,6 +648,20 @@ export async function buildLiveCopernicusSnapshot(
         score: scoreSentinel1Moisture(sentinel1Summary.moistureProxy),
       };
     }
+    if (variable.key === "era5_rainfall_fit") {
+      return {
+        ...variable,
+        value: era5Summary.annualRainfallMm,
+        score: Math.round(scoreAnnualRainfall(era5Summary.annualRainfallMm)),
+      };
+    }
+    if (variable.key === "era5_temperature_distribution") {
+      return {
+        ...variable,
+        value: era5Summary.meanTemperatureC,
+        score: Math.round(scoreMeanTemperature(era5Summary.meanTemperatureC)),
+      };
+    }
     if (variable.key === "eudr_land_cover_gate") {
       return {
         ...variable,
@@ -645,14 +699,30 @@ export async function buildLiveCopernicusSnapshot(
             notes:
               "Live SAR uses Sentinel-1 GRD IW dual-polarization VV/VH quarterly backscatter through the Sentinel Hub Statistics API.",
           }
+      : source.key === "era5"
+        ? {
+            ...source,
+            mode: "live" as const,
+            dateRange: {
+              from: climateMonths[0]?.month ?? source.dateRange.from,
+              to: climateMonths.at(-1)?.month ?? source.dateRange.to,
+            },
+            notes:
+              "Live climate uses the Open-Meteo Archive API path for ERA5 reanalysis daily precipitation and temperature aggregates.",
+          }
       : source,
   );
   const liveConfidence = usableMonths.length >= 18 ? "high" as const : "medium" as const;
-  const combinedLiveConfidence = lowerConfidence(liveConfidence, sentinel1Summary.confidence);
+  const combinedLiveConfidence = lowerConfidence(
+    lowerConfidence(liveConfidence, sentinel1Summary.confidence),
+    era5Summary.confidence,
+  );
   const liveCompleteness = Number(
     Math.min(
       0.95,
-      (usableMonths.length / 24) * 0.75 + (usableSarQuarters.length / 8) * 0.25,
+      (usableMonths.length / 24) * 0.55 +
+        (usableSarQuarters.length / 8) * 0.2 +
+        (climateMonths.length / 24) * 0.25,
     ).toFixed(2),
   );
   const dataQuality: CopernicusDataQuality = {
@@ -660,7 +730,7 @@ export async function buildLiveCopernicusSnapshot(
     confidence: lowerConfidence(combinedLiveConfidence, parcelScale.confidence),
     completeness: liveCompleteness,
     warnings: [
-      "Sentinel-2 NDVI and Sentinel-1 SAR are live; ERA5, DEM, and EUDR are still fixture or pending fields.",
+      "Sentinel-2 NDVI, Sentinel-1 SAR, and ERA5 climate are live; DEM and EUDR are still fixture or pending fields.",
       ...(parcelScale.warning ? [parcelScale.warning] : []),
     ],
     parcelScale,
@@ -683,6 +753,7 @@ export async function buildLiveCopernicusSnapshot(
     polygon: lot.polygon ?? null,
     sentinel2: historicalSeries,
     sentinel1: sarQuarters,
+    era5: climateMonths,
   });
   const signature = hashJson({
     signer: LIVE_SIGNER,
@@ -718,16 +789,22 @@ export async function buildLiveCopernicusSnapshot(
           ? fixture.sentinel1.structuralChangeSignal
           : sentinel1Summary.structuralChangeSignal,
     },
+    era5: {
+      annualRainfallMm: era5Summary.annualRainfallMm,
+      meanTemperatureC: era5Summary.meanTemperatureC,
+      seasonalDistribution: era5Summary.seasonalDistribution,
+      waterStress: era5Summary.waterStress,
+    },
     eudr: {
       ...fixture.eudr,
       riskLevel: "review_required",
       requiresManualReview: true,
       confidence: "medium",
       reasons: [
-        "Sentinel-2 NDVI and Sentinel-1 SAR are live, but JRC forest-loss screening is not implemented yet.",
+        "Sentinel-2 NDVI, Sentinel-1 SAR, and ERA5 climate are live, but JRC forest-loss screening is not implemented yet.",
       ],
       limitations: [
-        "This slice verifies vegetation and radar evidence only; it is not a final EUDR decision.",
+        "This slice verifies vegetation, radar, and climate evidence only; it is not a final EUDR decision.",
       ],
     },
     evidenceHash,
