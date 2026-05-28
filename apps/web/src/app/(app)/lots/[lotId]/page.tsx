@@ -41,6 +41,7 @@ import {
 import { useAccount, useConnect } from "wagmi";
 
 import { formatUsdFromCents } from "@/lib/format";
+import { chainLabel, getSnapshotChain } from "@/lib/chainProof";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { trpc } from "@/utils/trpc";
 import { useReservePartnership, type ReserveStep } from "@/hooks/use-reserve-partnership";
@@ -152,23 +153,6 @@ function eudrLabel(status: string | null | undefined) {
 function shortHash(hash: string | null | undefined) {
   if (!hash) return "Pending";
   return hash.length > 18 ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : hash;
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
-}
-
-function getSnapshotChain(snapshot: { chain?: unknown } | null | undefined) {
-  const chain = asRecord(snapshot?.chain);
-  return {
-    chainId: typeof chain.chainId === "number" ? chain.chainId : 31337,
-    metadataStatus: chain.metadataStatus === "written" ? "written" : "pending",
-    transactionHash: typeof chain.transactionHash === "string" ? chain.transactionHash : null,
-  };
-}
-
-function chainLabel(chainId: number) {
-  return chainId === 31337 ? "Hardhat local" : `Chain ${chainId}`;
 }
 
 export default function LotDetailPage() {

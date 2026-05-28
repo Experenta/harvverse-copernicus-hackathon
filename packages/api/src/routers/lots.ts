@@ -17,6 +17,7 @@ import {
   proposals,
   users,
 } from "@harvverse-copernicus-hackathon/db/schema";
+import type { Db } from "@harvverse-copernicus-hackathon/db";
 import { env } from "@harvverse-copernicus-hackathon/env/server";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, type SQL } from "drizzle-orm";
@@ -30,7 +31,10 @@ import {
 import {
   buildFixtureCopernicusSnapshot,
   buildLiveCopernicusSnapshot,
+  type CopernicusLotSnapshot,
+  type CopernicusSourceMode,
 } from "../lib/copernicus";
+import { fetchCopernicusDemElevation } from "../lib/copernicus/dem";
 
 const lotStatusSchema = z.enum(lotStatusEnum.enumValues);
 const copernicusSourceModeSchema = z.enum(copernicusSourceModeEnum.enumValues);
@@ -77,6 +81,7 @@ type PublicLotRecord = typeof lots.$inferSelect & {
   farm: typeof farms.$inferSelect;
   plans: Array<typeof plans.$inferSelect>;
 };
+type LotForCopernicus = typeof lots.$inferSelect;
 
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
@@ -96,6 +101,83 @@ function resolveRepoRoot() {
     return path.resolve(cwd, "..", "..");
   }
   return cwd;
+}
+
+async function buildCopernicusSnapshotForLot(
+  lot: LotForCopernicus,
+  sourceMode: CopernicusSourceMode,
+) {
+  if (sourceMode === "live") {
+    const credentials = getSentinelHubCredentials(env);
+    if (!credentials) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message:
+          "Live Copernicus scoring requires SENTINEL_HUB_CLIENT_ID and SENTINEL_HUB_CLIENT_SECRET.",
+      });
+    }
+    const token = await getSentinelHubToken(credentials);
+    return buildLiveCopernicusSnapshot(lot, token);
+  }
+
+  return buildFixtureCopernicusSnapshot(lot);
+}
+
+async function persistCopernicusSnapshot(db: Db, snapshot: CopernicusLotSnapshot) {
+  return db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(copernicusSnapshots)
+      .values({
+        lotId: snapshot.lotId,
+        farmId: snapshot.farmId,
+        sourceMode: snapshot.sourceMode,
+        scoreVersion: snapshot.scoreVersion,
+        riskScore: snapshot.riskScore,
+        riskTier: snapshot.riskTier,
+        eudrStatus: snapshot.eudrStatus,
+        eligibleForInvestment: snapshot.eligibleForInvestment,
+        variables: snapshot.variables,
+        sources: snapshot.sources,
+        dataQuality: snapshot.dataQuality,
+        polygon: snapshot.polygon,
+        sentinel2: snapshot.sentinel2,
+        sentinel1: snapshot.sentinel1,
+        dem: snapshot.dem,
+        era5: snapshot.era5,
+        eudr: snapshot.eudr,
+        yieldPredict: snapshot.yieldPredict,
+        chain: snapshot.chain,
+        signedPayload: snapshot.signedPayload,
+        scoreHash: snapshot.scoreHash,
+      })
+      .returning();
+
+    if (!created) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Snapshot insert returned no row",
+      });
+    }
+
+    await tx
+      .update(lots)
+      .set({
+        riskScore: snapshot.riskScore,
+        riskTier: snapshot.riskTier,
+        eudrStatus: snapshot.eudrStatus,
+        scoreHash: snapshot.scoreHash,
+        scoreVersion: snapshot.scoreVersion,
+        scoreUpdatedAt: created.createdAt,
+        copernicusSnapshotId: created.id,
+        ...(snapshot.dem.altitudeMasl != null
+          ? { altitudeMasl: snapshot.dem.altitudeMasl }
+          : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(lots.id, snapshot.lotId));
+
+    return { snapshot: created, payload: snapshot };
+  });
 }
 
 async function runLocalCopernicusVerifier(
@@ -386,6 +468,25 @@ export const lotsRouter = router({
       return { lot: toPublicLot(lot), snapshot };
     }),
 
+  detectAltitude: protectedProcedure
+    .input(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const altitudeMeters = await fetchCopernicusDemElevation({
+        lat: input.lat,
+        lng: input.lng,
+      });
+
+      return {
+        altitudeMeters,
+        provider: "open_meteo_copernicus_dem_glo90" as const,
+      };
+    }),
+
   computeCopernicusSnapshot: protectedProcedure
     .input(
       z.object({
@@ -412,82 +513,21 @@ export const lotsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "You cannot score this lot" });
       }
 
-      const snapshot =
-        input.sourceMode === "live"
-          ? await (async () => {
-              const credentials = getSentinelHubCredentials(env);
-              if (!credentials) {
-                throw new TRPCError({
-                  code: "BAD_REQUEST",
-                  message:
-                    "Live Copernicus scoring requires SENTINEL_HUB_CLIENT_ID and SENTINEL_HUB_CLIENT_SECRET.",
-                });
-              }
-              const token = await getSentinelHubToken(credentials);
-              return buildLiveCopernicusSnapshot(lot, token);
-            })().catch((error: unknown) => {
-              if (error instanceof TRPCError) throw error;
-              throw new TRPCError({
-                code: "BAD_REQUEST",
-                message:
-                  error instanceof Error
-                    ? error.message
-                    : "Live Copernicus scoring failed.",
-              });
-            })
-          : buildFixtureCopernicusSnapshot(lot);
-
-      return ctx.db.transaction(async (tx) => {
-        const [created] = await tx
-          .insert(copernicusSnapshots)
-          .values({
-            lotId: snapshot.lotId,
-            farmId: snapshot.farmId,
-            sourceMode: snapshot.sourceMode,
-            scoreVersion: snapshot.scoreVersion,
-            riskScore: snapshot.riskScore,
-            riskTier: snapshot.riskTier,
-            eudrStatus: snapshot.eudrStatus,
-            eligibleForInvestment: snapshot.eligibleForInvestment,
-            variables: snapshot.variables,
-            sources: snapshot.sources,
-            dataQuality: snapshot.dataQuality,
-            polygon: snapshot.polygon,
-            sentinel2: snapshot.sentinel2,
-            sentinel1: snapshot.sentinel1,
-            dem: snapshot.dem,
-            era5: snapshot.era5,
-            eudr: snapshot.eudr,
-            yieldPredict: snapshot.yieldPredict,
-            chain: snapshot.chain,
-            signedPayload: snapshot.signedPayload,
-            scoreHash: snapshot.scoreHash,
-          })
-          .returning();
-
-        if (!created) {
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "Snapshot insert returned no row",
-          });
-        }
-
-        await tx
-          .update(lots)
-          .set({
-            riskScore: snapshot.riskScore,
-            riskTier: snapshot.riskTier,
-            eudrStatus: snapshot.eudrStatus,
-            scoreHash: snapshot.scoreHash,
-            scoreVersion: snapshot.scoreVersion,
-            scoreUpdatedAt: created.createdAt,
-            copernicusSnapshotId: created.id,
-            updatedAt: new Date(),
-          })
-          .where(eq(lots.id, snapshot.lotId));
-
-        return { snapshot: created, payload: snapshot };
+      const snapshot = await buildCopernicusSnapshotForLot(
+        lot,
+        input.sourceMode,
+      ).catch((error: unknown) => {
+        if (error instanceof TRPCError) throw error;
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Copernicus scoring failed.",
+        });
       });
+
+      return persistCopernicusSnapshot(ctx.db, snapshot);
     }),
 
   markLocalCopernicusProof: protectedProcedure
@@ -643,6 +683,25 @@ export const lotsRouter = router({
 
         return created;
       });
+
+      if (lot.polygon != null) {
+        const sourceMode: CopernicusSourceMode = getSentinelHubCredentials(env)
+          ? "live"
+          : "fixture";
+
+        void (async () => {
+          const snapshot = await buildCopernicusSnapshotForLot(lot, sourceMode);
+          await persistCopernicusSnapshot(ctx.db, snapshot);
+        })().catch((error: unknown) => {
+          console.error("[lots.create] automatic Copernicus analysis failed:", {
+            lotId: lot.id,
+            message:
+              error instanceof Error
+                ? error.message
+                : "Automatic Copernicus analysis failed.",
+          });
+        });
+      }
 
       return lot;
     }),

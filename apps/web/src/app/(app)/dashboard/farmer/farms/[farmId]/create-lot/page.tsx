@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Polygon } from "geojson";
 import type { Route } from "next";
 import { useRouter, useParams } from "next/navigation";
@@ -21,7 +21,6 @@ import {
   HelpCircle,
   Loader2,
   MapPinned,
-  Satellite,
 } from "lucide-react";
 
 import { GlassCard } from "@harvverse-copernicus-hackathon/ui/components/glass-card";
@@ -174,6 +173,9 @@ export default function CreateLotPage() {
   const [showPolygonGuide, setShowPolygonGuide] = useState(true);
   const [defineTermsNow, setDefineTermsNow] = useState(false);
   const [submitMode, setSubmitMode] = useState<SubmitMode>("draft");
+  const altitudeRequestKeyRef = useRef<string | null>(null);
+  const [detectedAltitude, setDetectedAltitude] = useState<number | null>(null);
+  const [altitudeStatus, setAltitudeStatus] = useState<"detected" | "error" | null>(null);
 
   const farmPolygon =
     farm?.polygon != null ? (farm.polygon as Polygon) : undefined;
@@ -199,6 +201,8 @@ export default function CreateLotPage() {
     }),
   );
 
+  const detectAltitude = useMutation(trpc.lots.detectAltitude.mutationOptions());
+
   const form = useForm<CreateLotInput, unknown, CreateLotValues>({
     resolver: zodResolver(createLotSchema),
     defaultValues: {
@@ -222,7 +226,12 @@ export default function CreateLotPage() {
 
   // Auto-fill GPS centroid from polygon when those fields are untouched
   useEffect(() => {
-    if (!lotPolygon) return;
+    if (!lotPolygon) {
+      altitudeRequestKeyRef.current = null;
+      setDetectedAltitude(null);
+      setAltitudeStatus(null);
+      return;
+    }
 
     const { lat, lng } = polygonCentroid(lotPolygon);
 
@@ -233,6 +242,28 @@ export default function CreateLotPage() {
       form.setValue("gpsLat", parseFloat(lat.toFixed(6)));
       form.setValue("gpsLng", parseFloat(lng.toFixed(6)));
     }
+
+    setDetectedAltitude(null);
+    setAltitudeStatus(null);
+    const requestKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+    altitudeRequestKeyRef.current = requestKey;
+    detectAltitude.mutate(
+      { lat, lng },
+      {
+        onSuccess: (result) => {
+          if (altitudeRequestKeyRef.current !== requestKey) return;
+          setDetectedAltitude(result.altitudeMeters);
+          setAltitudeStatus("detected");
+          if (!form.formState.dirtyFields.altitudeMasl) {
+            form.setValue("altitudeMasl", result.altitudeMeters);
+          }
+        },
+        onError: () => {
+          if (altitudeRequestKeyRef.current !== requestKey) return;
+          setAltitudeStatus("error");
+        },
+      },
+    );
 
     if (farmPolygon) {
       setOutsideFarm(!polygonContainedIn(lotPolygon, farmPolygon));
@@ -246,18 +277,6 @@ export default function CreateLotPage() {
       form.setValue("areaManzanas", area.manzanas);
     }
   }
-
-  const rawLat = form.watch("gpsLat");
-  const rawLng = form.watch("gpsLng");
-  const gpsLat =
-    Number.isFinite(Number(rawLat)) && rawLat !== undefined
-      ? Number(rawLat)
-      : null;
-  const gpsLng =
-    Number.isFinite(Number(rawLng)) && rawLng !== undefined
-      ? Number(rawLng)
-      : null;
-  const canDetect = gpsLat !== null && gpsLng !== null;
 
   const areaManzanas = form.watch("areaManzanas");
   const showPreview =
@@ -674,8 +693,11 @@ export default function CreateLotPage() {
                 name="altitudeMasl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-white/80">
+                    <FormLabel className="flex items-center gap-2 text-white/80">
                       {t("altitude")}
+                      {detectAltitude.isPending ? (
+                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                      ) : null}
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -690,6 +712,15 @@ export default function CreateLotPage() {
                         value={(field.value as string | number | undefined) ?? ""}
                       />
                     </FormControl>
+                    {altitudeStatus === "detected" && detectedAltitude != null ? (
+                      <p className="text-xs font-semibold text-primary">
+                        DEM altitude detected: {detectedAltitude} masl
+                      </p>
+                    ) : altitudeStatus === "error" ? (
+                      <p className="text-xs font-semibold text-yellow-300">
+                        DEM altitude could not be detected automatically.
+                      </p>
+                    ) : null}
                     <FormMessage />
                   </FormItem>
                 )}
