@@ -2,9 +2,9 @@
 
 import type { Route } from "next";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Ban, Fingerprint, HelpCircle, MapPin, Mountain, Pencil, ShieldCheck, Sprout, TreePine } from "lucide-react";
+import { ArrowLeft, Ban, ExternalLink, Fingerprint, HelpCircle, Loader2, MapPin, Mountain, Pencil, ShieldCheck, Sprout, TreePine } from "lucide-react";
 
 import { Badge } from "@harvverse-copernicus-hackathon/ui/components/badge";
 import { Button } from "@harvverse-copernicus-hackathon/ui/components/button";
@@ -70,18 +70,45 @@ function shortHash(hash: string | null | undefined) {
   return hash.length > 18 ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : hash;
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+}
+
+function getSnapshotChain(snapshot: { chain?: unknown } | null | undefined) {
+  const chain = asRecord(snapshot?.chain);
+  return {
+    chainId: typeof chain.chainId === "number" ? chain.chainId : 31337,
+    metadataStatus: chain.metadataStatus === "written" ? "written" : "pending",
+    transactionHash: typeof chain.transactionHash === "string" ? chain.transactionHash : null,
+  };
+}
+
+function chainLabel(chainId: number) {
+  return chainId === 31337 ? "Hardhat local" : `Chain ${chainId}`;
+}
+
 export default function FarmerLotDetailPage() {
   const router = useRouter();
   const params = useParams<{ lotId: string }>();
   const lotId = Number(params.lotId);
   const lotIdValid = Number.isFinite(lotId) && lotId > 0;
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  const queryClient = useQueryClient();
   const t = useTranslations("lot");
   const tc = useTranslations("common");
   const tLF = useTranslations("lot_financial");
 
   const { data: lot, isLoading: lotLoading } = useQuery(
     trpc.lots.byId.queryOptions({ id: lotId }, { enabled: lotIdValid }),
+  );
+  const markLocalProof = useMutation(
+    trpc.lots.markLocalCopernicusProof.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: trpc.lots.byId.queryKey({ id: lotId }),
+        });
+      },
+    }),
   );
 
   if (!userLoading && user && user.role !== "farmer") {
@@ -113,6 +140,8 @@ export default function FarmerLotDetailPage() {
   const statusColor = STATUS_COLORS[lot.status] ?? STATUS_COLORS.available;
   const copernicusSnapshot = lot.copernicusSnapshot ?? null;
   const copernicusEligible = copernicusSnapshot?.eligibleForInvestment === true;
+  const chainProof = getSnapshotChain(copernicusSnapshot);
+  const localProofWritten = chainProof.metadataStatus === "written";
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-0 text-[#EEEEEE]">
@@ -252,7 +281,55 @@ export default function FarmerLotDetailPage() {
                   </span>
                   <span className="font-mono text-xs text-primary">{shortHash(copernicusSnapshot.scoreHash)}</span>
                 </div>
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                  <span className="text-white/45">Local proof</span>
+                  <span className={localProofWritten ? "font-bold text-emerald-300" : "font-bold text-yellow-200"}>
+                    {localProofWritten ? "Verified" : "Pending"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                  <span className="text-white/45">Chain</span>
+                  <span className="font-mono text-xs text-primary">
+                    {chainLabel(chainProof.chainId)} · {chainProof.chainId}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                  <span className="text-white/45">Transaction</span>
+                  <span className="font-mono text-xs text-primary">{shortHash(chainProof.transactionHash)}</span>
+                </div>
               </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {!localProofWritten ? (
+                  <Button
+                    size="sm"
+                    className="bg-primary text-[#001020] hover:bg-primary/90 font-bold"
+                    disabled={markLocalProof.isPending}
+                    onClick={() => markLocalProof.mutate({ lotId })}
+                  >
+                    {markLocalProof.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                    )}
+                    Generate local proof
+                  </Button>
+                ) : null}
+                {lot.code ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/10 bg-white/[0.03] text-white hover:bg-white/10"
+                    onClick={() => router.push(`/lot/${encodeURIComponent(lot.code ?? "")}` as Route)}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    QR proof
+                  </Button>
+                ) : null}
+              </div>
+              {markLocalProof.error ? (
+                <p className="text-xs leading-5 text-red-300">{markLocalProof.error.message}</p>
+              ) : null}
             </div>
           ) : (
             <div className="rounded-lg border border-yellow-400/20 bg-yellow-400/10 p-4">
