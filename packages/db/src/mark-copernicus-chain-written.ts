@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,6 +20,27 @@ function requiredEnv(name: string) {
 	const value = process.env[name];
 	if (!value) throw new Error(`${name} is required.`);
 	return value;
+}
+
+type ChainWriteResult = {
+	scoreHash?: string;
+	transactionHash?: string;
+	txHash?: string;
+	contractAddress?: string | null;
+	lotAddress?: string | null;
+	chainId?: number | string;
+};
+
+function readJsonFile<T>(filePath: string): T {
+	const resolvedPath = path.isAbsolute(filePath)
+		? filePath
+		: path.resolve(repoRoot, filePath);
+	return JSON.parse(fs.readFileSync(resolvedPath, "utf8")) as T;
+}
+
+function optionalEnv(name: string) {
+	const value = process.env[name];
+	return value && value.length > 0 ? value : undefined;
 }
 
 function normalizeScoreHash(value: string) {
@@ -50,10 +72,27 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 async function main() {
 	const databaseUrl = requiredEnv("DATABASE_URL");
-	const scoreHash = normalizeScoreHash(requiredEnv("SCORE_HASH"));
-	const txHash = normalizeTxHash(requiredEnv("TX_HASH"));
-	const contractAddress = optionalAddress(process.env.CONTRACT_ADDRESS);
-	const chainId = Number(process.env.CHAIN_ID ?? 84532);
+	const chainWriteResult = optionalEnv("CHAIN_WRITE_RESULT_PATH")
+		? readJsonFile<ChainWriteResult>(requiredEnv("CHAIN_WRITE_RESULT_PATH"))
+		: null;
+	const scoreHash = normalizeScoreHash(
+		optionalEnv("SCORE_HASH") ?? chainWriteResult?.scoreHash ?? "",
+	);
+	const txHash = normalizeTxHash(
+		optionalEnv("TX_HASH") ??
+			chainWriteResult?.transactionHash ??
+			chainWriteResult?.txHash ??
+			"",
+	);
+	const contractAddress = optionalAddress(
+		optionalEnv("CONTRACT_ADDRESS") ??
+			chainWriteResult?.contractAddress ??
+			chainWriteResult?.lotAddress ??
+			undefined,
+	);
+	const chainId = Number(
+		optionalEnv("CHAIN_ID") ?? chainWriteResult?.chainId ?? 84532,
+	);
 
 	if (!Number.isInteger(chainId) || chainId <= 0) {
 		throw new Error(`CHAIN_ID must be a positive integer, received: ${process.env.CHAIN_ID}`);
