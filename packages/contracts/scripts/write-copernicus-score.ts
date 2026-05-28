@@ -34,6 +34,17 @@ function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
 }
 
+function writeJsonIfRequested(value: unknown) {
+  const outputPath = process.env.OUTPUT_PATH;
+  if (!outputPath) return;
+
+  const resolvedPath = path.isAbsolute(outputPath)
+    ? outputPath
+    : path.resolve(repoRoot, outputPath);
+  fs.mkdirSync(path.dirname(resolvedPath), { recursive: true });
+  fs.writeFileSync(resolvedPath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
 function resolveSnapshotPath() {
   const snapshotPath = process.env.SNAPSHOT_PATH ?? ".docs/sentinel/sample-copernicus-snapshot.json";
   return path.isAbsolute(snapshotPath)
@@ -84,26 +95,26 @@ async function main() {
   const lotId = ethers.keccak256(ethers.toUtf8Bytes(lotCode));
   const scoreHash = toBytes32Hash(snapshot.scoreHash);
   const eudrCompliant = snapshot.eudrStatus === "verified";
+  const chain = await ethers.provider.getNetwork();
+  const chainId = Number(chain.chainId);
 
   if (process.env.DRY_RUN === "true") {
-    console.log(
-      JSON.stringify(
-        {
-          dryRun: true,
-          network: network.name,
-          lotAddress,
-          lotCode,
-          lotId,
-          riskScore: snapshot.riskScore,
-          eudrStatus: snapshot.eudrStatus,
-          eudrCompliant,
-          scoreHash,
-          scoreVersion: snapshot.scoreVersion,
-        },
-        null,
-        2,
-      ),
-    );
+    const result = {
+      dryRun: true,
+      network: network.name,
+      chainId,
+      contractAddress: lotAddress,
+      lotAddress,
+      lotCode,
+      lotId,
+      riskScore: snapshot.riskScore,
+      eudrStatus: snapshot.eudrStatus,
+      eudrCompliant,
+      scoreHash,
+      scoreVersion: snapshot.scoreVersion,
+    };
+    writeJsonIfRequested(result);
+    console.log(JSON.stringify(result, null, 2));
     return;
   }
 
@@ -117,24 +128,22 @@ async function main() {
   );
   const receipt = await tx.wait();
 
-  console.log(
-    JSON.stringify(
-      {
-        network: network.name,
-        lotAddress,
-        lotCode,
-        lotId,
-        riskScore: snapshot.riskScore,
-        eudrStatus: snapshot.eudrStatus,
-        eudrCompliant,
-        scoreHash,
-        scoreVersion: snapshot.scoreVersion,
-        transactionHash: receipt?.hash ?? tx.hash,
-      },
-      null,
-      2,
-    ),
-  );
+  const result = {
+    network: network.name,
+    chainId,
+    contractAddress: lotAddress,
+    lotAddress,
+    lotCode,
+    lotId,
+    riskScore: snapshot.riskScore,
+    eudrStatus: snapshot.eudrStatus,
+    eudrCompliant,
+    scoreHash,
+    scoreVersion: snapshot.scoreVersion,
+    transactionHash: receipt?.hash ?? tx.hash,
+  };
+  writeJsonIfRequested(result);
+  console.log(JSON.stringify(result, null, 2));
 }
 
 main().catch((err) => {

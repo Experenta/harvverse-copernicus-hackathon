@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,6 +22,32 @@ function requiredEnv(name: string) {
 	return value;
 }
 
+type ChainWriteResult = {
+	scoreHash?: string;
+	transactionHash?: string;
+	txHash?: string;
+	contractAddress?: string | null;
+	lotAddress?: string | null;
+	chainId?: number | string;
+};
+
+function readJsonFile<T>(filePath: string): T {
+	const resolvedPath = path.isAbsolute(filePath)
+		? filePath
+		: path.resolve(repoRoot, filePath);
+	return JSON.parse(fs.readFileSync(resolvedPath, "utf8")) as T;
+}
+
+function optionalEnv(name: string) {
+	const value = process.env[name];
+	return value && value.length > 0 ? value : undefined;
+}
+
+function requiredValue(name: string, value: string | undefined) {
+	if (!value) throw new Error(`${name} is required.`);
+	return value;
+}
+
 function normalizeScoreHash(value: string) {
 	const normalized = value.startsWith("0x") ? value.slice(2) : value;
 	if (!/^[0-9a-fA-F]{64}$/.test(normalized)) {
@@ -33,7 +60,7 @@ function normalizeTxHash(value: string) {
 	if (!/^0x[0-9a-fA-F]{64}$/.test(value)) {
 		throw new Error(`TX_HASH must be a 0x-prefixed 32-byte hex string, received: ${value}`);
 	}
-	return value;
+	return value.toLowerCase();
 }
 
 function optionalAddress(value: string | undefined) {
@@ -50,10 +77,25 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 async function main() {
 	const databaseUrl = requiredEnv("DATABASE_URL");
-	const scoreHash = normalizeScoreHash(requiredEnv("SCORE_HASH"));
-	const txHash = normalizeTxHash(requiredEnv("TX_HASH"));
-	const contractAddress = optionalAddress(process.env.CONTRACT_ADDRESS);
-	const chainId = Number(process.env.CHAIN_ID ?? 84532);
+	const chainWriteResult = optionalEnv("CHAIN_WRITE_RESULT_PATH")
+		? readJsonFile<ChainWriteResult>(requiredEnv("CHAIN_WRITE_RESULT_PATH"))
+		: null;
+	const rawScoreHash = optionalEnv("SCORE_HASH") ?? chainWriteResult?.scoreHash;
+	const rawTxHash =
+		optionalEnv("TX_HASH") ??
+		chainWriteResult?.transactionHash ??
+		chainWriteResult?.txHash;
+	const scoreHash = normalizeScoreHash(requiredValue("SCORE_HASH", rawScoreHash));
+	const txHash = normalizeTxHash(requiredValue("TX_HASH", rawTxHash));
+	const contractAddress = optionalAddress(
+		optionalEnv("CONTRACT_ADDRESS") ??
+			chainWriteResult?.contractAddress ??
+			chainWriteResult?.lotAddress ??
+			undefined,
+	);
+	const chainId = Number(
+		optionalEnv("CHAIN_ID") ?? chainWriteResult?.chainId ?? 31337,
+	);
 
 	if (!Number.isInteger(chainId) || chainId <= 0) {
 		throw new Error(`CHAIN_ID must be a positive integer, received: ${process.env.CHAIN_ID}`);
