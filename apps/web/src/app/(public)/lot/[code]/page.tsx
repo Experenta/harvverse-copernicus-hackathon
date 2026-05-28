@@ -186,6 +186,10 @@ function chainLabel(chainId: number) {
   return `Chain ${chainId}`;
 }
 
+function metadataLabel(status: CopernicusSnapshotView["chain"]["metadataStatus"]) {
+  return status === "written" ? "Local proof verified" : "Pending";
+}
+
 function numberValue(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -366,7 +370,7 @@ export default function PublicLotProofPage() {
               <div className="mt-4 space-y-3 text-sm">
                 <ProofRow label="Score hash" value={shortHash(snapshot.scoreHash)} mono />
                 <ProofRow label="Chain" value={`${chainLabel(snapshot.chain.chainId)} · ${snapshot.chain.chainId}`} />
-                <ProofRow label="Metadata" value={snapshot.chain.metadataStatus} />
+                <ProofRow label="Local proof" value={metadataLabel(snapshot.chain.metadataStatus)} />
                 <ProofRow label="Confidence" value={snapshot.dataQuality.confidence} />
                 <ProofRow label="Completeness" value={`${Math.round(snapshot.dataQuality.completeness * 100)}%`} />
                 <ProofRow label="Parcel confidence" value={snapshot.dataQuality.parcelScale.confidence} />
