@@ -43,6 +43,11 @@ function optionalEnv(name: string) {
 	return value && value.length > 0 ? value : undefined;
 }
 
+function requiredValue(name: string, value: string | undefined) {
+	if (!value) throw new Error(`${name} is required.`);
+	return value;
+}
+
 function normalizeScoreHash(value: string) {
 	const normalized = value.startsWith("0x") ? value.slice(2) : value;
 	if (!/^[0-9a-fA-F]{64}$/.test(normalized)) {
@@ -55,7 +60,7 @@ function normalizeTxHash(value: string) {
 	if (!/^0x[0-9a-fA-F]{64}$/.test(value)) {
 		throw new Error(`TX_HASH must be a 0x-prefixed 32-byte hex string, received: ${value}`);
 	}
-	return value;
+	return value.toLowerCase();
 }
 
 function optionalAddress(value: string | undefined) {
@@ -75,15 +80,13 @@ async function main() {
 	const chainWriteResult = optionalEnv("CHAIN_WRITE_RESULT_PATH")
 		? readJsonFile<ChainWriteResult>(requiredEnv("CHAIN_WRITE_RESULT_PATH"))
 		: null;
-	const scoreHash = normalizeScoreHash(
-		optionalEnv("SCORE_HASH") ?? chainWriteResult?.scoreHash ?? "",
-	);
-	const txHash = normalizeTxHash(
+	const rawScoreHash = optionalEnv("SCORE_HASH") ?? chainWriteResult?.scoreHash;
+	const rawTxHash =
 		optionalEnv("TX_HASH") ??
-			chainWriteResult?.transactionHash ??
-			chainWriteResult?.txHash ??
-			"",
-	);
+		chainWriteResult?.transactionHash ??
+		chainWriteResult?.txHash;
+	const scoreHash = normalizeScoreHash(requiredValue("SCORE_HASH", rawScoreHash));
+	const txHash = normalizeTxHash(requiredValue("TX_HASH", rawTxHash));
 	const contractAddress = optionalAddress(
 		optionalEnv("CONTRACT_ADDRESS") ??
 			chainWriteResult?.contractAddress ??
