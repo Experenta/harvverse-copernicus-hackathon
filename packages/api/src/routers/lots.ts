@@ -131,6 +131,10 @@ async function runLocalCopernicusVerifier(
       )}\n`,
     );
 
+    if (env.NODE_ENV !== "development") {
+      throw new Error("Local Hardhat proof generation is only supported in development.");
+    }
+
     await execFileAsync(
       hardhatBin,
       ["run", "scripts/verify-local-copernicus-chain.ts", "--network", "hardhat"],
