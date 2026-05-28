@@ -80,9 +80,14 @@ type CopernicusSnapshotView = {
   sentinel2: {
     currentNdvi: number;
     twoYearAverageNdvi: number;
+    currentNdre?: number | null;
+    currentNdwi?: number | null;
+    currentMsi?: number | null;
     historicalSeries?: Array<{ month: string; ndvi: number }>;
   };
   sentinel1: {
+    vhVvRatio?: number | null;
+    radarVegetationIndex?: number | null;
     moistureProxy: string;
     structuralChangeSignal: string;
   };
@@ -318,7 +323,10 @@ export default function PublicLotProofPage() {
             <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-white/40">Satellite Signals</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <Metric icon={Leaf} label="Sentinel-2 NDVI" value={snapshot ? numberValue(snapshot.sentinel2.currentNdvi).toFixed(2) : "--"} />
+              <Metric icon={Leaf} label="Sentinel-2 NDRE" value={snapshot?.sentinel2.currentNdre == null ? "--" : numberValue(snapshot.sentinel2.currentNdre).toFixed(2)} />
+              <Metric icon={Sprout} label="Sentinel-2 NDWI" value={snapshot?.sentinel2.currentNdwi == null ? "--" : numberValue(snapshot.sentinel2.currentNdwi).toFixed(2)} />
               <Metric icon={Satellite} label="Sentinel-1 SAR" value={snapshot?.sentinel1.moistureProxy ?? "--"} />
+              <Metric icon={Satellite} label="S1 VH/VV · RVI" value={snapshot?.sentinel1.vhVvRatio == null || snapshot.sentinel1.radarVegetationIndex == null ? "--" : `${numberValue(snapshot.sentinel1.vhVvRatio).toFixed(2)} · ${numberValue(snapshot.sentinel1.radarVegetationIndex).toFixed(2)}`} />
               <Metric icon={Sprout} label="ERA5 Rainfall" value={snapshot ? `${numberValue(snapshot.era5.annualRainfallMm)} mm` : "--"} />
               <Metric icon={ChartNoAxesColumn} label="DEM Altitude" value={snapshot ? `${numberValue(snapshot.dem.altitudeMasl)} masl` : "--"} />
             </div>
