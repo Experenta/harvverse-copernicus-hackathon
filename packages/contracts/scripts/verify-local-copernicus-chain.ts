@@ -113,7 +113,7 @@ async function main() {
     ok:
       Number(storedScore.riskScore) === snapshot.riskScore &&
       storedScore.eudrCompliant === eudrCompliant &&
-      storedScore.scoreHash === scoreHash &&
+      storedScore.scoreHash.toLowerCase() === scoreHash.toLowerCase() &&
       contractInvestmentEligible === expectedInvestmentEligible &&
       snapshot.eligibleForInvestment === expectedInvestmentEligible,
     network: network.name,
