@@ -22,6 +22,7 @@ import {
 import { Badge } from "@harvverse-copernicus-hackathon/ui/components/badge";
 import { GlassCard } from "@harvverse-copernicus-hackathon/ui/components/glass-card";
 import { Skeleton } from "@harvverse-copernicus-hackathon/ui/components/skeleton";
+import { asRecord, chainLabel } from "@/lib/chainProof";
 import { trpc } from "@/utils/trpc";
 
 const PolygonDisplayMap = dynamic(() => import("@/components/polygon-display-map"), {
@@ -116,10 +117,6 @@ type CopernicusSnapshotView = {
   };
 };
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
-}
-
 function asSnapshot(value: unknown): CopernicusSnapshotView | null {
   const record = asRecord(value);
   if (!record) return null;
@@ -183,12 +180,6 @@ function eudrLabel(status: CopernicusSnapshotView["eudrStatus"]) {
 
 function shortHash(hash: string) {
   return hash.length > 16 ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : hash;
-}
-
-function chainLabel(chainId: number) {
-  if (chainId === 31337) return "Hardhat local";
-  if (chainId === 84532) return "Base Sepolia";
-  return `Chain ${chainId}`;
 }
 
 function metadataLabel(status: CopernicusSnapshotView["chain"]["metadataStatus"]) {

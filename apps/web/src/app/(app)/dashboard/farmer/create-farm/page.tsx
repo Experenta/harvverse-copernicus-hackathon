@@ -93,6 +93,19 @@ const CERTIFICATIONS = [
 const inputClasses =
   "harv-input";
 
+function centroidFromPolygon(polygon: Polygon) {
+  const ring = (polygon.coordinates[0] ?? []).slice(0, -1);
+  if (ring.length === 0) return null;
+
+  const latSum = ring.reduce((sum, coordinate) => sum + (coordinate[1] ?? 0), 0);
+  const lngSum = ring.reduce((sum, coordinate) => sum + (coordinate[0] ?? 0), 0);
+
+  return {
+    lat: latSum / ring.length,
+    lng: lngSum / ring.length,
+  };
+}
+
 function MultiSelectDropdown({
   value,
   options,
@@ -171,9 +184,50 @@ export default function CreateFarmPage() {
   const [showPolygonGuide, setShowPolygonGuide] = useState(true);
   const [createdFarm, setCreatedFarm] = useState<{ id: number; name: string } | null>(null);
   const [uploadedImageIds, setUploadedImageIds] = useState<number[]>([]);
+  const altitudeRequestKeyRef = useRef<string | null>(null);
+  const [detectedAltitude, setDetectedAltitude] = useState<number | null>(null);
+  const [altitudeStatus, setAltitudeStatus] = useState<"detected" | "error" | null>(null);
 
   function handlePolygonChange(p: Polygon | null) {
     setPolygon(p);
+    setDetectedAltitude(null);
+    setAltitudeStatus(null);
+
+    if (!p) {
+      altitudeRequestKeyRef.current = null;
+      return;
+    }
+
+    const centroid = centroidFromPolygon(p);
+    if (!centroid) return;
+
+    if (
+      form.getValues("latitude") === undefined &&
+      form.getValues("longitude") === undefined
+    ) {
+      form.setValue("latitude", parseFloat(centroid.lat.toFixed(6)));
+      form.setValue("longitude", parseFloat(centroid.lng.toFixed(6)));
+    }
+
+    const requestKey = `${centroid.lat.toFixed(6)},${centroid.lng.toFixed(6)}`;
+    altitudeRequestKeyRef.current = requestKey;
+    detectAltitude.mutate(
+      { lat: centroid.lat, lng: centroid.lng },
+      {
+        onSuccess: (result) => {
+          if (altitudeRequestKeyRef.current !== requestKey) return;
+          setDetectedAltitude(result.altitudeMeters);
+          setAltitudeStatus("detected");
+          if (!form.formState.dirtyFields.altitudeMasl) {
+            form.setValue("altitudeMasl", result.altitudeMeters);
+          }
+        },
+        onError: () => {
+          if (altitudeRequestKeyRef.current !== requestKey) return;
+          setAltitudeStatus("error");
+        },
+      },
+    );
   }
 
   function handleAreaCalculated(area: { hectares: number; manzanas: number } | null) {
@@ -195,6 +249,8 @@ export default function CreateFarmPage() {
       },
     }),
   );
+
+  const detectAltitude = useMutation(trpc.lots.detectAltitude.mutationOptions());
 
   const form = useForm<CreateFarmInput, unknown, CreateFarmValues>({
     resolver: zodResolver(createFarmSchema),
@@ -220,12 +276,10 @@ export default function CreateFarmPage() {
       form.getValues("latitude") !== undefined ||
       form.getValues("longitude") !== undefined
     ) return;
-    const ring = (polygon.coordinates[0] ?? []).slice(0, -1);
-    if (ring.length === 0) return;
-    const latSum = ring.reduce((s: number, c: number[]) => s + (c[1] ?? 0), 0);
-    const lngSum = ring.reduce((s: number, c: number[]) => s + (c[0] ?? 0), 0);
-    form.setValue("latitude", parseFloat((latSum / ring.length).toFixed(6)));
-    form.setValue("longitude", parseFloat((lngSum / ring.length).toFixed(6)));
+    const centroid = centroidFromPolygon(polygon);
+    if (!centroid) return;
+    form.setValue("latitude", parseFloat(centroid.lat.toFixed(6)));
+    form.setValue("longitude", parseFloat(centroid.lng.toFixed(6)));
   }, [polygon]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function onSubmit(values: CreateFarmValues) {
@@ -499,6 +553,9 @@ export default function CreateFarmPage() {
                         <FormItem>
                           <FormLabel className="text-white/80 flex items-center gap-2">
                             {t("altitude")}
+                            {detectAltitude.isPending ? (
+                              <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                            ) : null}
                           </FormLabel>
                           <FormControl>
                             <Input
@@ -508,6 +565,15 @@ export default function CreateFarmPage() {
                               value={typeof field.value === "number" ? field.value : ""}
                             />
                           </FormControl>
+                          {altitudeStatus === "detected" && detectedAltitude != null ? (
+                            <p className="text-xs font-semibold text-primary">
+                              DEM altitude detected: {detectedAltitude} masl
+                            </p>
+                          ) : altitudeStatus === "error" ? (
+                            <p className="text-xs font-semibold text-yellow-300">
+                              DEM altitude could not be detected automatically.
+                            </p>
+                          ) : null}
                           <FormMessage />
                         </FormItem>
                       )}

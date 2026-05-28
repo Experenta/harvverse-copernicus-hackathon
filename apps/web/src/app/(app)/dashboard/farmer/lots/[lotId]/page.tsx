@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import type { Route } from "next";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ import {
 } from "@harvverse-copernicus-hackathon/ui/components/tooltip";
 
 import { computeEarnings, formatUsd, formatUsdFromCents, formatUsdPrecise } from "@/lib/format";
+import { asRecord, chainLabel, getSnapshotChain } from "@/lib/chainProof";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { trpc } from "@/utils/trpc";
 
@@ -70,23 +72,6 @@ function shortHash(hash: string | null | undefined) {
   return hash.length > 18 ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : hash;
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
-}
-
-function getSnapshotChain(snapshot: { chain?: unknown } | null | undefined) {
-  const chain = asRecord(snapshot?.chain);
-  return {
-    chainId: typeof chain.chainId === "number" ? chain.chainId : 31337,
-    metadataStatus: chain.metadataStatus === "written" ? "written" : "pending",
-    transactionHash: typeof chain.transactionHash === "string" ? chain.transactionHash : null,
-  };
-}
-
-function chainLabel(chainId: number) {
-  return chainId === 31337 ? "Hardhat local" : `Chain ${chainId}`;
-}
-
 function numberValue(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
@@ -129,6 +114,20 @@ export default function FarmerLotDetailPage() {
       },
     }),
   );
+  const autoCopernicusAttemptedRef = useRef(false);
+
+  useEffect(() => {
+    autoCopernicusAttemptedRef.current = false;
+  }, [lotId]);
+
+  useEffect(() => {
+    if (!lot || lot.copernicusSnapshot || autoCopernicusAttemptedRef.current) return;
+    if (computeCopernicus.isPending) return;
+    if (lot.polygon == null) return;
+
+    autoCopernicusAttemptedRef.current = true;
+    computeCopernicus.mutate({ lotId: lot.id, sourceMode: "live" });
+  }, [lot, computeCopernicus, lotId]);
 
   if (!userLoading && user && user.role !== "farmer") {
     router.replace("/dashboard/player");
@@ -161,10 +160,10 @@ export default function FarmerLotDetailPage() {
   const copernicusEligible = copernicusSnapshot?.eligibleForInvestment === true;
   const chainProof = getSnapshotChain(copernicusSnapshot);
   const localProofWritten = chainProof.metadataStatus === "written";
-  const sentinel2 = asRecord(copernicusSnapshot?.sentinel2);
-  const sentinel1 = asRecord(copernicusSnapshot?.sentinel1);
-  const dem = asRecord(copernicusSnapshot?.dem);
-  const era5 = asRecord(copernicusSnapshot?.era5);
+  const sentinel2 = asRecord(copernicusSnapshot?.sentinel2) ?? {};
+  const sentinel1 = asRecord(copernicusSnapshot?.sentinel1) ?? {};
+  const dem = asRecord(copernicusSnapshot?.dem) ?? {};
+  const era5 = asRecord(copernicusSnapshot?.era5) ?? {};
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-0 text-[#EEEEEE]">
@@ -403,21 +402,23 @@ export default function FarmerLotDetailPage() {
             <div className="space-y-4 rounded-lg border border-yellow-400/20 bg-yellow-400/10 p-4">
               <p className="text-sm font-bold text-yellow-200">Satellite score pending</p>
               <p className="mt-1 text-xs leading-5 text-yellow-100/65">
-                Compute a Copernicus snapshot before this lot can receive on-chain investment.
+                Live Copernicus analysis starts automatically for lots with a polygon.
               </p>
-              <Button
-                size="sm"
-                className="bg-primary text-[#001020] hover:bg-primary/90 font-bold"
-                disabled={computeCopernicus.isPending}
-                onClick={() => computeCopernicus.mutate({ lotId, sourceMode: "live" })}
-              >
-                {computeCopernicus.isPending ? (
+              {computeCopernicus.isPending ? (
+                <div className="flex items-center gap-2 text-sm font-bold text-primary">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
+                  Running Sentinel-2, Sentinel-1, ERA5, DEM, and EUDR checks...
+                </div>
+              ) : computeCopernicus.error ? (
+                <Button
+                  size="sm"
+                  className="bg-primary text-[#001020] hover:bg-primary/90 font-bold"
+                  onClick={() => computeCopernicus.mutate({ lotId, sourceMode: "live" })}
+                >
                   <Satellite className="mr-2 h-4 w-4" />
-                )}
-                Run live Copernicus analysis
-              </Button>
+                  Retry live analysis
+                </Button>
+              ) : null}
               {computeCopernicus.error ? (
                 <p className="text-xs leading-5 text-red-300">{computeCopernicus.error.message}</p>
               ) : null}
