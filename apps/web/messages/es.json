@@ -158,7 +158,19 @@
     "alt_logo": "Logo de Harvverse",
     "alt_farm": "Finca de Café",
     "alt_platform": "Plataforma Harvverse",
-    "alt_dashboard": "Panel de Socio Digital"
+    "alt_dashboard": "Panel de Socio Digital",
+    "investment_lots_title": "Lotes de Inversión",
+    "lots_section_desc": "Crea y abre lotes de esta finca para el flujo de puntaje Copernicus.",
+    "create_lot_btn": "Crear lote",
+    "open_lot": "Abrir lote",
+    "status_available": "disponible",
+    "status_draft": "Borrador",
+    "status_reserved": "reservado",
+    "status_active": "activo",
+    "status_settled": "liquidado",
+    "status_cancelled": "cancelado",
+    "lot_id": "Lote #{id}",
+    "no_lots_yet": "No hay lotes registrados para esta finca todavía."
   },
   "lot": {
     "create_title": "Crear Lote de Inversión",
@@ -775,6 +787,9 @@
     "pending": "Pendiente",
     "unknown": "Desconocido",
     "polygon_pending": "Polígono pendiente",
+    "satellite_map": "Mapa satelital del lote",
+    "invalid_polygon": "Las coordenadas del polígono del lote no son válidas para dibujar el mapa satelital.",
+    "tile_error": "El mapa base satelital no cargó, pero la prueba del polígono registrado aún se dibuja desde las coordenadas GPS del lote.",
     "lot_id": "Lote {id}",
     "source_mode_pending": "pendiente",
     "unit_qq": "qq",
@@ -815,6 +830,58 @@
       "s1_vh_vv_rvi": "S1 VH/VV · RVI",
       "era5_rainfall": "Lluvia ERA5",
       "dem_altitude": "Altitud DEM"
+    },
+    "section_help": {
+      "risk_score": "Un puntaje 0-100 de riesgo financiero construido con evidencia satelital, climatica, de terreno y EUDR.",
+      "satellite_signals": "Senales Copernicus crudas usadas por el score. La optica mide vigor del dosel; radar agrega estructura y humedad aun con nubes.",
+      "breakdown": "Las siete variables ponderadas que crean el score final. EUDR puede bloquear elegibilidad aunque el score sea bueno.",
+      "investment_argument": "YieldPredict convierte area, rendimiento base por variedad/altitud, fuerza NDVI de temporada y densidad de plantas en un rango de cosecha.",
+      "evidence_packet": "Campos de auditoria para que comprador o inversionista verifique de donde sale el score y si la prueba local fue escrita."
+    },
+    "status_help": {
+      "eudr": "Gate europeo de deforestacion. Verificado significa que no hubo senal post-2020 sobre el umbral de bloqueo del hackathon.",
+      "yield_predict": "Rango de cosecha proyectado en quintales, usando fuerza satelital de temporada y contexto agronomico."
+    },
+    "metric_help": {
+      "s2_ndvi": "Verdor y vigor del dosel. Valores mas altos suelen indicar vegetacion activa mas densa.",
+      "s2_ndre": "Senal red-edge de clorofila. Ayuda cuando el dosel de cafe es denso y NDVI se satura.",
+      "s2_ndwi": "Senal de agua en el dosel. Ayuda a detectar estres hidrico e hidratacion.",
+      "s1_sar": "Clase de humedad/estructura derivada de radar. Sentinel-1 puede observar a traves de nubes.",
+      "s1_vh_vv_rvi": "Ratios de estructura radar. VH/VV y RVI agregan evidencia de estructura del dosel mas alla de imagen optica.",
+      "era5_rainfall": "Estimacion de lluvia anual ERA5 para el area del lote, comparada contra bandas de aptitud Arabica.",
+      "dem_altitude": "Elevacion tomada del centroide del poligono usando datos Copernicus DEM."
+    },
+    "variable_help": {
+      "sentinel2_current_ndvi": "Puntua salud optica del cultivo usando NDVI, NDRE e indices relacionados con agua.",
+      "sentinel2_ndvi_stability": "Revisa si la vegetacion se mantuvo estable en la serie temporal reciente en vez de caer abruptamente.",
+      "sentinel1_moisture": "Usa retrodispersion radar para agregar evidencia resistente a nubes sobre estructura y humedad superficial.",
+      "era5_rainfall_fit": "Puntua si la lluvia esta dentro de un rango productivo para cafe, no demasiado seco ni demasiado humedo.",
+      "era5_temperature_distribution": "Puntua aptitud de temperatura para calidad Arabica y riesgo productivo.",
+      "eudr_land_cover_gate": "Gate duro de cumplimiento: perdida de vegetacion post-2020 puede bloquear elegibilidad.",
+      "polygon_terrain_suitability": "Puntua altitud y area del lote para riesgo financiero, no solo calidad en taza."
+    },
+    "yield_help": {
+      "projected": "Estimacion central de cosecha producida por la formula YieldPredict.",
+      "low_band": "Banda conservadora -20% para confianza de demo.",
+      "high_band": "Banda optimista +20% para confianza de demo.",
+      "base_yield": "Linea base agronomica por variedad de cafe y banda de altitud.",
+      "ndvi_modifier": "Multiplicador del area bajo la curva NDVI mayo-septiembre contra benchmark.",
+      "density_modifier": "Multiplicador acotado por densidad de plantas reportada; no puede inflar demasiado el rendimiento.",
+      "ndvi_auc": "Area bajo la curva NDVI durante meses de desarrollo del fruto: mayo a septiembre.",
+      "flowering_peak": "Mayor senal NDVI de marzo-abril, usada como contexto de floracion.",
+      "plant_density": "Arboles por manzana calculados con arboles del lote y area del poligono."
+    },
+    "proof_help": {
+      "score_hash": "Huella SHA-256 del paquete de evidencia usado por la prueba local.",
+      "chain": "Red donde se escribio o simulo la metadata de prueba.",
+      "local_proof": "Indica si el contrato local Hardhat acepto el score hash y estado EUDR.",
+      "confidence": "Confianza general despues de completitud de proveedores y limites por escala de parcela.",
+      "completeness": "Cuanta evidencia satelital/climatica esperada estuvo disponible.",
+      "parcel_confidence": "Confianza ajustada por tamano del lote y cobertura estimada de pixeles Sentinel.",
+      "s2_pixels": "Pixeles Sentinel-2 de 10m aproximados cubriendo el lote.",
+      "s1_cells": "Celdas radar Sentinel-1 IW aproximadas cubriendo el lote.",
+      "score_cap": "Indica si el score fue limitado porque faltaba evidencia.",
+      "transaction": "Hash de transaccion local Hardhat para la escritura de prueba."
     },
     "variable_sources": {
       "sentinel-2": "Sentinel-2",
