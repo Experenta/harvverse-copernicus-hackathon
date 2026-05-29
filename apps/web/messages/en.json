@@ -158,7 +158,19 @@
     "alt_logo": "Harvverse Logo",
     "alt_farm": "Coffee Farm",
     "alt_platform": "Harvverse Platform",
-    "alt_dashboard": "Digital Partner Dashboard"
+    "alt_dashboard": "Digital Partner Dashboard",
+    "investment_lots_title": "Investment Lots",
+    "lots_section_desc": "Create and open lots from this farm for the Copernicus scoring flow.",
+    "create_lot_btn": "Create lot",
+    "open_lot": "Open lot",
+    "status_available": "available",
+    "status_draft": "Draft",
+    "status_reserved": "reserved",
+    "status_active": "active",
+    "status_settled": "settled",
+    "status_cancelled": "cancelled",
+    "lot_id": "Lot #{id}",
+    "no_lots_yet": "No lots registered for this farm yet."
   },
   "lot": {
     "create_title": "Create Investment Lot",
@@ -774,6 +786,9 @@
     "pending": "Pending",
     "unknown": "Unknown",
     "polygon_pending": "Polygon pending",
+    "satellite_map": "Satellite lot map",
+    "invalid_polygon": "Lot polygon coordinates are not valid enough to draw the satellite map.",
+    "tile_error": "Satellite basemap tiles did not load, but the registered polygon proof is still drawn from the lot GPS coordinates.",
     "lot_id": "Lot {id}",
     "source_mode_pending": "pending",
     "unit_qq": "qq",
@@ -814,6 +829,58 @@
       "s1_vh_vv_rvi": "S1 VH/VV · RVI",
       "era5_rainfall": "ERA5 Rainfall",
       "dem_altitude": "DEM Altitude"
+    },
+    "section_help": {
+      "risk_score": "One 0-100 financing risk score assembled from satellite, climate, terrain, and EUDR evidence.",
+      "satellite_signals": "Raw Copernicus signals used by the score. Optical data sees canopy vigor; radar adds cloud-resistant structure and moisture context.",
+      "breakdown": "The seven weighted variables that create the final score. EUDR can block eligibility even when the score is good.",
+      "investment_argument": "YieldPredict turns area, variety/altitude base yield, NDVI season strength, and plant density into a harvest range.",
+      "evidence_packet": "Audit fields that let a buyer or investor verify where the score came from and whether local chain proof was written."
+    },
+    "status_help": {
+      "eudr": "EU deforestation gate. Verified means no post-2020 vegetation-loss signal crossed the hackathon block threshold.",
+      "yield_predict": "Projected harvest range in quintales, using satellite season strength and agronomic context."
+    },
+    "metric_help": {
+      "s2_ndvi": "Vegetation greenness and canopy vigor. Higher values usually mean denser active vegetation.",
+      "s2_ndre": "Red-edge chlorophyll signal. Useful when coffee canopy is dense and NDVI starts to saturate.",
+      "s2_ndwi": "Canopy water signal. Helps detect water stress and hydration conditions.",
+      "s1_sar": "Radar-derived moisture/structure class. Sentinel-1 can observe through clouds.",
+      "s1_vh_vv_rvi": "Radar structure ratios. VH/VV and RVI add canopy structure evidence beyond optical imagery.",
+      "era5_rainfall": "ERA5 annual rainfall estimate for the lot area, compared against Arabica suitability bands.",
+      "dem_altitude": "Elevation sampled from the lot polygon centroid using Copernicus DEM data."
+    },
+    "variable_help": {
+      "sentinel2_current_ndvi": "Scores current optical crop health using NDVI, NDRE, and water-related indices.",
+      "sentinel2_ndvi_stability": "Checks whether vegetation stayed stable across the recent time series instead of showing abrupt decline.",
+      "sentinel1_moisture": "Uses radar backscatter to add cloud-resistant evidence about canopy structure and surface moisture.",
+      "era5_rainfall_fit": "Scores whether rainfall is inside a productive coffee range instead of too dry or too wet.",
+      "era5_temperature_distribution": "Scores temperature suitability for Arabica quality and production risk.",
+      "eudr_land_cover_gate": "Hard compliance gate: post-2020 vegetation loss can block marketplace eligibility.",
+      "polygon_terrain_suitability": "Scores altitude and lot area context for financing risk, not cup quality alone."
+    },
+    "yield_help": {
+      "projected": "Central harvest estimate produced by the YieldPredict formula.",
+      "low_band": "Conservative -20% bound for demo confidence.",
+      "high_band": "Optimistic +20% bound for demo confidence.",
+      "base_yield": "Agronomic baseline by coffee variety and altitude band.",
+      "ndvi_modifier": "Multiplier from May-Sep NDVI area under the curve versus a benchmark.",
+      "density_modifier": "Bounded multiplier from farmer-entered plant density, capped so it cannot inflate yield too much.",
+      "ndvi_auc": "Area under the NDVI curve during fruit development months: May through September.",
+      "flowering_peak": "Highest March-April NDVI signal, used as flowering-season context.",
+      "plant_density": "Trees per manzana calculated from lot tree count and polygon area."
+    },
+    "proof_help": {
+      "score_hash": "SHA-256 fingerprint of the evidence packet used by the local proof.",
+      "chain": "Network where the proof metadata was written or simulated.",
+      "local_proof": "Whether the local Hardhat contract accepted the score hash and EUDR status.",
+      "confidence": "Overall data confidence after provider completeness and parcel-scale limits.",
+      "completeness": "How much of the expected satellite/climate evidence was available.",
+      "parcel_confidence": "Confidence adjusted for lot size and estimated Sentinel pixel coverage.",
+      "s2_pixels": "Approximate Sentinel-2 10m pixels covering the lot.",
+      "s1_cells": "Approximate Sentinel-1 IW radar cells covering the lot.",
+      "score_cap": "Whether the score was capped because evidence was incomplete.",
+      "transaction": "Local Hardhat transaction hash for the proof write."
     },
     "variable_sources": {
       "sentinel-2": "Sentinel-2",

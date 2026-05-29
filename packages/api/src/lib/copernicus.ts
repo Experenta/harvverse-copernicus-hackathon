@@ -314,14 +314,15 @@ function averageNullable(values: Array<number | null | undefined>): number | nul
 }
 
 function scoreAnnualRainfall(annualMm: number): number {
-  if (annualMm < 800) return 0;
-  if (annualMm <= 1200) return lerp(annualMm, 800, 1200, 0, 60);
-  if (annualMm <= 1500) return lerp(annualMm, 1200, 1500, 60, 85);
-  if (annualMm <= 2000) return 100;
-  if (annualMm <= 2500) return lerp(annualMm, 2000, 2500, 100, 70);
-  if (annualMm <= 3000) return lerp(annualMm, 2500, 3000, 70, 40);
-  if (annualMm <= 3500) return lerp(annualMm, 3000, 3500, 40, 20);
-  return 0;
+  if (annualMm < 600) return 10;
+  if (annualMm <= 900) return lerp(annualMm, 600, 900, 10, 40);
+  if (annualMm <= 1200) return lerp(annualMm, 900, 1200, 40, 70);
+  if (annualMm <= 1500) return lerp(annualMm, 1200, 1500, 70, 90);
+  if (annualMm <= 2400) return 100;
+  if (annualMm <= 3000) return lerp(annualMm, 2400, 3000, 100, 60);
+  if (annualMm <= 3500) return lerp(annualMm, 3000, 3500, 60, 35);
+  if (annualMm <= 4500) return lerp(annualMm, 3500, 4500, 35, 15);
+  return 10;
 }
 
 function scoreMeanTemperature(meanC: number): number {
@@ -341,7 +342,7 @@ function scoreTerrainSuitability(value: "excellent" | "good" | "moderate"): numb
 }
 
 function lerp(value: number, inMin: number, inMax: number, outMin: number, outMax: number) {
-  const ratio = (value - inMin) / (inMax - inMin);
+  const ratio = clamp((value - inMin) / (inMax - inMin), 0, 1);
   return outMin + ratio * (outMax - outMin);
 }
 
