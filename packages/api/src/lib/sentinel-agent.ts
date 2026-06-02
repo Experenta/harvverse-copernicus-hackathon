@@ -114,101 +114,101 @@ export const sentinelAgentKnowledge: Record<SentinelAgentSignal, SentinelAgentKb
   S1_roya: {
     signal: "S1_roya",
     title: "Riesgo de roya",
-    threshold: "20-25 C + humedad >80% + hoja mojada >6h sostenido.",
+    threshold: "20-25 °C + humedad >80% + hoja mojada >6h sostenido.",
     meaning: "Condiciones ideales para que el hongo de la roya infecte.",
     context:
       "Peor en variedades susceptibles como Geisha, Bourbon y Typica. Parainema, Lempira e IHCAFE-90 tienen mayor resistencia, pero no son inmunes.",
     impact:
-      "Sin manejo, puede causar defoliacion y perdida de 30-50% de cosecha; baja projected_qq y retorno del partner.",
+      "Sin manejo, puede causar defoliación y pérdida de 30-50% de cosecha; baja projected_qq y retorno del partner.",
     action:
-      "Revisar el enves de las hojas en 3 dias, mejorar drenaje/sombra y validar manejo con tecnico.",
+      "Revisar el envés de las hojas en 3 días, mejorar drenaje/sombra y validar manejo con técnico.",
     risk: "ATENCION",
     guardrails: [
-      "No recomendar fungicida especifico sin confirmacion de tecnico o IHCAFE.",
-      "Presentar la alerta como riesgo preventivo, no diagnostico confirmado.",
+      "No recomendar fungicida específico sin confirmación de técnico o IHCAFE.",
+      "Presentar la alerta como riesgo preventivo, no diagnóstico confirmado.",
     ],
     template:
-      "Detectamos condiciones de alto riesgo de roya esta semana. Revise el enves de las hojas en los proximos 3 dias.",
+      "Detectamos condiciones de alto riesgo de roya esta semana. Revise el envés de las hojas en los próximos 3 días.",
   },
   S2_ndvi_drop: {
     signal: "S2_ndvi_drop",
-    title: "Caida de NDVI",
-    threshold: "Caida significativa vs. linea base de 2 anos.",
-    meaning: "El cafetal perdio verdor o vigor, lo que suele indicar estres.",
+    title: "Caída de NDVI",
+    threshold: "Caída significativa vs. línea base de 2 años.",
+    meaning: "El cafetal perdió verdor o vigor, lo que suele indicar estrés.",
     context:
-      "Puede ser estres hidrico, enfermedad, deficiencia nutricional o defoliacion normal post-cosecha si ocurre entre octubre y diciembre.",
+      "Puede ser estrés hídrico, enfermedad, deficiencia nutricional o defoliación normal post-cosecha si ocurre entre octubre y diciembre.",
     impact:
       "Recalcula projected_qq con nuevo NDVI AUC y comunica el nuevo rango con banda +/-20%.",
     action:
-      "Preguntar primero si hay hojas marchitas por la tarde, manchas o dano en fruto antes de concluir causa.",
+      "Preguntar primero si hay hojas marchitas por la tarde, manchas o daño en fruto antes de concluir causa.",
     risk: "ATENCION",
     guardrails: [
       "No asumir causa solo por NDVI.",
       "Si es octubre-diciembre, mencionar que la baja puede ser normal por post-cosecha.",
     ],
     template:
-      "El satelite muestra que el verdor de su lote bajo. Suele indicar estres. ?Ha visto hojas marchitas por la tarde o algun dano en el fruto?",
+      "El satélite muestra que el verdor de su lote bajó. Suele indicar estrés. ¿Ha visto hojas marchitas por la tarde o algún daño en el fruto?",
   },
   S3_water_stress: {
     signal: "S3_water_stress",
-    title: "Estres hidrico",
+    title: "Estrés hídrico",
     threshold: "NDWI/MSI bajo o humedad de suelo <20% VWC por 48h.",
-    meaning: "La planta esta pasando sed.",
+    meaning: "La planta está pasando sed.",
     context:
-      "En llenado de fruto puede reducir tamano y peso del grano; en floracion puede causar aborto de flor.",
+      "En llenado de fruto puede reducir tamaño y peso del grano; en floración puede causar aborto de flor.",
     impact: "Reduce projected_qq y puede bajar el retorno proyectado.",
     action: "Riego si hay acceso, sombra y mulch para retener humedad.",
     risk: "ATENCION",
     guardrails: [
       "Considerar si el productor realmente tiene acceso a riego.",
-      "Comunicar como recomendacion practica, no como orden tecnica.",
+      "Comunicar como recomendación práctica, no como orden técnica.",
     ],
     template:
-      "Su lote esta pasando sed justo cuando se llena el grano. Si puede regar esta semana, ayuda a que el grano no salga pequeno.",
+      "Su lote está pasando sed justo cuando se llena el grano. Si puede regar esta semana, ayuda a que el grano no salga pequeño.",
   },
   S4_eudr: {
     signal: "S4_eudr",
-    title: "Cambio EUDR / deforestacion",
-    threshold: "Perdida de vegetacion post-2020 en o cerca del poligono.",
+    title: "Cambio EUDR / deforestación",
+    threshold: "Pérdida de vegetación post-2020 en o cerca del polígono.",
     meaning: "Posible incumplimiento EUDR.",
     context:
-      "Sin cumplimiento EUDR, el cafe puede perder acceso al mercado europeo.",
+      "Sin cumplimiento EUDR, el café puede perder acceso al mercado europeo.",
     impact: "Bloquea marketplace y afecta precio/venta del lote.",
-    action: "Verificar poligono, fecha del cambio y evidencia con revision humana.",
+    action: "Verificar polígono, fecha del cambio y evidencia con revisión humana.",
     risk: "ALTO",
     guardrails: [
-      "Revision humana obligatoria.",
+      "Revisión humana obligatoria.",
       "El agente no declara elegibilidad legal final.",
     ],
     template:
-      "Detectamos un cambio de cobertura cerca de su lote que afecta cumplimiento EUDR. Un miembro del equipo lo contactara para revisarlo.",
+      "Detectamos un cambio de cobertura cerca de su lote que afecta cumplimiento EUDR. Un miembro del equipo lo contactará para revisarlo.",
   },
   S5_rainfall: {
     signal: "S5_rainfall",
-    title: "Anomalia de lluvia",
-    threshold: "Lluvia fuera de rango; optimo del engine 1,500-2,400 mm/ano.",
-    meaning: "Puede ser deficit o exceso de lluvia.",
+    title: "Anomalía de lluvia",
+    threshold: "Lluvia fuera de rango; óptimo del engine 1,500-2,400 mm/año.",
+    meaning: "Puede ser déficit o exceso de lluvia.",
     context:
-      "Exceso mayor a 3,000 mm aumenta riesgo de hongos, deslaves y floracion irregular.",
-    impact: "Ajusta el componente de precipitacion del Risk Score y rendimiento.",
-    action: "Drenaje si hay exceso; riego si hay deficit; ajustar expectativa de floracion.",
+      "Exceso mayor a 3,000 mm aumenta riesgo de hongos, deslaves y floración irregular.",
+    impact: "Ajusta el componente de precipitación del Risk Score y rendimiento.",
+    action: "Drenaje si hay exceso; riego si hay déficit; ajustar expectativa de floración.",
     risk: "ATENCION",
-    guardrails: ["No confundir lluvia anual con diagnostico de enfermedad."],
+    guardrails: ["No confundir lluvia anual con diagnóstico de enfermedad."],
     template:
-      "Este ano la lluvia va fuera de lo ideal para el cafe. Eso puede afectar floracion o sanidad.",
+      "Este año la lluvia va fuera de lo ideal para el café. Eso puede afectar floración o sanidad.",
   },
   S6_flowering_positive: {
     signal: "S6_flowering_positive",
-    title: "Floracion sana",
-    threshold: "Pico de floracion Mar-Abr detectado y NDVI sano, o NDVI recuperandose.",
+    title: "Floración sana",
+    threshold: "Pico de floración Mar-Abr detectado y NDVI sano, o NDVI recuperándose.",
     meaning: "Buen rumbo productivo.",
     context: "La trayectoria vegetativa se mantiene positiva para la etapa.",
     impact: "Projected_qq se mantiene o mejora.",
     action: "Seguir el plan y avisar del siguiente hito.",
     risk: "INFO",
-    guardrails: ["No prometer cosecha final; mantenerlo como senal positiva."],
+    guardrails: ["No prometer cosecha final; mantenerlo como señal positiva."],
     template:
-      "Buenas noticias: el satelite detecto una floracion fuerte y pareja. Vamos por buen camino.",
+      "Buenas noticias: el satélite detectó una floración fuerte y pareja. Vamos por buen camino.",
   },
 };
 
@@ -369,21 +369,21 @@ export function buildSentinelAgentScenario(input: {
 
   const bodyByScenario: Record<SentinelAgentScenario, string> = {
     lot_approved:
-      `Don ${farmerName}, su lote ${lotCode} quedo aprobado por Copernicus: score ${input.context.snapshot.riskScore ?? "pendiente"}/100 y EUDR verificado. YieldPredict estima ${yieldText}. QR publico: ${input.context.publicUrl}`,
+      `Don ${farmerName}, su lote ${lotCode} quedó aprobado por Copernicus: score ${input.context.snapshot.riskScore ?? "pendiente"}/100 y EUDR verificado. YieldPredict estima ${yieldText}. QR público: ${input.context.publicUrl}`,
     eudr_blocked:
-      `Don ${farmerName}, detectamos una senal que puede afectar cumplimiento EUDR en ${lotCode}. Sin cumplimiento, este cafe no podria venderse a Europa. El equipo debe revisar poligono y fecha del cambio antes de tomar una decision final.`,
+      `Don ${farmerName}, detectamos una señal que puede afectar cumplimiento EUDR en ${lotCode}. Sin cumplimiento, este café no podría venderse a Europa. El equipo debe revisar polígono y fecha del cambio antes de tomar una decisión final.`,
     water_stress:
-      `Don ${farmerName}, su lote ${lotCode} muestra senales de estres hidrico. En llenado de fruto esto puede reducir tamano y peso del grano. Si tiene acceso a riego esta semana, puede ayudar a proteger la cosecha proyectada de ${yieldText}.`,
+      `Don ${farmerName}, su lote ${lotCode} muestra señales de estrés hídrico. En llenado de fruto esto puede reducir tamaño y peso del grano. Si tiene acceso a riego esta semana, puede ayudar a proteger la cosecha proyectada de ${yieldText}.`,
     fungal_risk:
-      `Don ${farmerName}, la lluvia anual de ${input.context.signals.annualRainfallMm ?? "pendiente"} mm esta por encima de lo ideal. Esto aumenta riesgo de hongos y problemas de acceso/secado. Revise drenaje y sanidad del lote ${lotCode}.`,
+      `Don ${farmerName}, la lluvia anual de ${input.context.signals.annualRainfallMm ?? "pendiente"} mm está por encima de lo ideal. Esto aumenta riesgo de hongos y problemas de acceso/secado. Revise drenaje y sanidad del lote ${lotCode}.`,
     ndvi_drop_money:
-      `Don ${farmerName}, el satelite muestra que el verdor de ${lotCode} bajo${dropPct == null ? "" : ` cerca de ${dropPct}%`} en las ultimas semanas. Como estamos en etapa productiva, esto puede afectar cosecha y retorno. Proyeccion actual: ${yieldText}; utilidad farmer: ${farmerProfit}; utilidad partner: ${partnerProfit}; retorno partner total: ${partnerReturn}. ?Ha visto hojas marchitas por la tarde o dano en el fruto?`,
+      `Don ${farmerName}, el satélite muestra que el verdor de ${lotCode} bajó${dropPct == null ? "" : ` cerca de ${dropPct}%`} en las últimas semanas. Como estamos en etapa productiva, esto puede afectar cosecha y retorno. Proyección actual: ${yieldText}; utilidad farmer: ${farmerProfit}; utilidad partner: ${partnerProfit}; retorno partner total: ${partnerReturn}. ¿Ha visto hojas marchitas por la tarde o daño en el fruto?`,
     roya_risk:
-      `Don ${farmerName}, en ${lotCode} simulamos condiciones de alto riesgo de roya para demo: ${temperatureC ?? "22"} C y humedad ${humidityPct ?? "85"}% en ${phenologyStage}, variedad ${variety}. Revise el enves de las hojas en los proximos 3 dias. Si ve manchas amarillo-naranja, confirme manejo con tecnico o IHCAFE.`,
+      `Don ${farmerName}, en ${lotCode} simulamos condiciones de alto riesgo de roya para demo: ${temperatureC ?? "22"} °C y humedad ${humidityPct ?? "85"}% en ${phenologyStage}, variedad ${variety}. Revise el envés de las hojas en los próximos 3 días. Si ve manchas amarillo-naranja, confirme manejo con técnico o IHCAFE.`,
     explain_roya:
-      "La roya es un hongo que ataca las hojas del cafe. Aparece como polvo amarillo-naranja en el enves. Hace que la hoja se caiga, y con menos hojas la planta produce menos. Avanza rapido con calor y humedad. ?Quiere que le diga como revisarla paso a paso?",
+      "La roya es un hongo que ataca las hojas del café. Aparece como polvo amarillo-naranja en el envés. Hace que la hoja se caiga, y con menos hojas la planta produce menos. Avanza rápido con calor y humedad. ¿Quiere que le diga cómo revisarla paso a paso?",
     flowering_positive:
-      `Buenas noticias, Don ${farmerName}. El satelite detecto una trayectoria positiva en ${lotCode}. Su cosecha proyectada se mantiene en ${yieldText}. Siga el plan de manejo y revise el siguiente hito.`,
+      `Buenas noticias, Don ${farmerName}. El satélite detectó una trayectoria positiva en ${lotCode}. Su cosecha proyectada se mantiene en ${yieldText}. Siga el plan de manejo y revise el siguiente hito.`,
   };
 
   const sourceMode =

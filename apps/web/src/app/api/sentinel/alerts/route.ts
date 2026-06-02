@@ -1,6 +1,8 @@
 import { env } from "@harvverse-copernicus-hackathon/env/server";
 import { z } from "zod";
 
+import { requireSentinelAgentRequest } from "../_auth";
+
 const eventTypeSchema = z.enum([
   "copernicus.snapshot.created",
   "risk_score.ready",
@@ -138,7 +140,10 @@ function normalizeEvent(input: z.infer<typeof sentinelEventSchema>) {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authError = requireSentinelAgentRequest(request);
+  if (authError) return authError;
+
   return Response.json({
     endpoint: "/api/sentinel/alerts",
     purpose:
@@ -157,6 +162,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const authError = requireSentinelAgentRequest(request);
+  if (authError) return authError;
+
   const body: unknown = await request.json().catch(() => null);
   const parsed = sentinelEventSchema.safeParse(body);
 

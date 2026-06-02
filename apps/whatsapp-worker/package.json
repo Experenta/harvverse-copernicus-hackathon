@@ -9,6 +9,7 @@
     "run": "TMPDIR=/tmp tsx src/index.ts"
   },
   "dependencies": {
+    "@harvverse-copernicus-hackathon/api": "workspace:*",
     "@harvverse-copernicus-hackathon/env": "workspace:*",
     "dotenv": "catalog:",
     "pg": "^8.17.1",

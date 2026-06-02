@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { requireSentinelAgentRequest } from "../../_auth";
 import { jsonError, loadSentinelAgentContext } from "../_lib";
 
 const contextQuerySchema = z.object({
@@ -8,6 +9,9 @@ const contextQuerySchema = z.object({
 });
 
 export async function GET(request: Request) {
+  const authError = requireSentinelAgentRequest(request);
+  if (authError) return authError;
+
   const url = new URL(request.url);
   const parsed = contextQuerySchema.safeParse({
     lotCode: url.searchParams.get("lotCode") ?? undefined,

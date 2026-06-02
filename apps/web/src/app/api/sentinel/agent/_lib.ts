@@ -59,7 +59,7 @@ export async function loadSentinelAgentContext(input: {
     },
     farmer: {
       name: lot.farm.farmer.displayName,
-      phone: lot.farm.farmer.phone,
+      phone: null,
     },
     snapshot: {
       id: snapshot?.id ?? null,

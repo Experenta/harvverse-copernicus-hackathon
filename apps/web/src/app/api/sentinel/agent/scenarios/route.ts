@@ -5,6 +5,7 @@ import {
   sentinelAgentScenarios,
 } from "@harvverse-copernicus-hackathon/api/lib/sentinel-agent";
 
+import { requireSentinelAgentRequest } from "../../_auth";
 import { jsonError, loadSentinelAgentContext } from "../_lib";
 
 const demoOverridesSchema = z
@@ -31,6 +32,9 @@ const scenarioBodySchema = z
   });
 
 export async function POST(request: Request) {
+  const authError = requireSentinelAgentRequest(request);
+  if (authError) return authError;
+
   const url = new URL(request.url);
   const body: unknown = await request.json().catch(() => null);
   const parsed = scenarioBodySchema.safeParse(body);
