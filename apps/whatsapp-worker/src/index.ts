@@ -1,5 +1,12 @@
 import path from "node:path";
 
+import {
+  buildSentinelAgentContext,
+  buildSentinelAgentScenario,
+  type SentinelAgentContext,
+  type SentinelAgentScenario,
+  type SentinelAgentScenarioResponse,
+} from "../../../packages/api/src/lib/sentinel-agent";
 import { config } from "dotenv";
 import pg from "pg";
 import { z } from "zod";
@@ -21,38 +28,36 @@ const workerEnvSchema = z.object({
   WHATSAPP_PUBLIC_APP_URL: z.url().default("http://localhost:3001"),
 });
 
-type AlertKind = "lot_approved" | "eudr_blocked" | "water_stress" | "fungal_risk";
-
 type SnapshotRow = {
   snapshot_id: number;
   snapshot_created_at: Date;
+  source_mode: "fixture" | "live";
   risk_score: number;
   risk_tier: string;
   eudr_status: "verified" | "non_compliant" | "unknown";
   eligible_for_investment: boolean;
   score_hash: string;
-  yield_predict: unknown;
+  sentinel2: unknown;
+  sentinel1: unknown;
   era5: unknown;
+  eudr: unknown;
+  yield_predict: unknown;
   chain: unknown;
   lot_id: number;
   lot_code: string | null;
   farm_name: string;
   region: string;
   country: string;
+  variety: string | null;
+  altitude_masl: number | null;
+  area_manzanas: string | number | null;
   farmer_name: string;
   farmer_phone: string | null;
 };
 
 type AlertCandidate = {
-  kind: AlertKind;
   to: string;
-  lotCode: string;
-  farmerName: string;
-  farmName: string;
-  riskScore: number;
-  yieldRange: string;
-  publicPath: string;
-  reason: string;
+  scenario: SentinelAgentScenarioResponse;
 };
 
 const { Pool } = pg;
@@ -64,16 +69,9 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function numberValue(value: unknown): number | null {
+  if (value == null) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function formatYieldRange(value: unknown): string {
-  const yieldPredict = asRecord(value);
-  const low = numberValue(yieldPredict.lowBandQuintales);
-  const high = numberValue(yieldPredict.highBandQuintales);
-  if (low == null || high == null) return "pendiente";
-  return `${low.toFixed(1)}-${high.toFixed(1)} qq`;
 }
 
 function normalizePhone(value: string | null): string | null {
@@ -84,55 +82,82 @@ function normalizePhone(value: string | null): string | null {
   return null;
 }
 
-function alertReason(kind: AlertKind) {
-  switch (kind) {
-    case "lot_approved":
-      return "Lote aprobado por score Copernicus y gate EUDR.";
-    case "eudr_blocked":
-      return "Lote bloqueado por gate EUDR.";
-    case "water_stress":
-      return "ERA5 indica estres hidrico alto.";
-    case "fungal_risk":
-      return "ERA5 indica lluvia anual muy alta y riesgo de hongos.";
+function publicUrl(lotCode: string) {
+  return `${env.WHATSAPP_PUBLIC_APP_URL.replace(/\/$/, "")}/lot/${encodeURIComponent(lotCode)}`;
+}
+
+function contextFromRow(row: SnapshotRow): SentinelAgentContext {
+  const lotCode = row.lot_code ?? String(row.lot_id);
+
+  return buildSentinelAgentContext({
+    lot: {
+      id: row.lot_id,
+      code: lotCode,
+      farmName: row.farm_name,
+      region: row.region,
+      country: row.country,
+      variety: row.variety,
+      altitudeMasl: row.altitude_masl,
+      areaManzanas: numberValue(row.area_manzanas),
+    },
+    farmer: {
+      name: row.farmer_name,
+      phone: row.farmer_phone,
+    },
+    snapshot: {
+      id: row.snapshot_id,
+      createdAt: row.snapshot_created_at.toISOString(),
+      sourceMode: row.source_mode,
+      riskScore: row.risk_score,
+      riskTier: row.risk_tier,
+      eudrStatus: row.eudr_status,
+      eligibleForInvestment: row.eligible_for_investment,
+      scoreHash: row.score_hash,
+      sentinel2: row.sentinel2,
+      sentinel1: row.sentinel1,
+      era5: row.era5,
+      eudr: row.eudr,
+      yieldPredict: row.yield_predict,
+      chain: row.chain,
+    },
+    publicUrl: publicUrl(lotCode),
+  });
+}
+
+function scenariosForRow(row: SnapshotRow): SentinelAgentScenario[] {
+  if (row.eudr_status === "non_compliant") return ["eudr_blocked"];
+
+  const scenarios: SentinelAgentScenario[] = [];
+  if (row.eligible_for_investment && row.risk_score >= 60) {
+    scenarios.push("lot_approved");
   }
+
+  const era5 = asRecord(row.era5);
+  if (era5.waterStress === "high") {
+    scenarios.push("water_stress");
+  }
+
+  const annualRainfallMm = numberValue(era5.annualRainfallMm);
+  if (annualRainfallMm != null && annualRainfallMm > 3000) {
+    scenarios.push("fungal_risk");
+  }
+
+  return scenarios;
 }
 
 function buildCandidates(row: SnapshotRow): AlertCandidate[] {
   const to = normalizePhone(row.farmer_phone);
   if (!to) return [];
 
-  const lotCode = row.lot_code ?? String(row.lot_id);
-  const base = {
+  const context = contextFromRow(row);
+  return scenariosForRow(row).map((scenario) => ({
     to,
-    lotCode,
-    farmerName: row.farmer_name,
-    farmName: row.farm_name,
-    riskScore: row.risk_score,
-    yieldRange: formatYieldRange(row.yield_predict),
-    publicPath: `${env.WHATSAPP_PUBLIC_APP_URL.replace(/\/$/, "")}/lot/${encodeURIComponent(lotCode)}`,
-  };
-
-  const candidates: AlertCandidate[] = [];
-  if (row.eudr_status === "non_compliant") {
-    candidates.push({ ...base, kind: "eudr_blocked", reason: alertReason("eudr_blocked") });
-    return candidates;
-  }
-
-  if (row.eligible_for_investment && row.risk_score >= 60) {
-    candidates.push({ ...base, kind: "lot_approved", reason: alertReason("lot_approved") });
-  }
-
-  const era5 = asRecord(row.era5);
-  if (era5.waterStress === "high") {
-    candidates.push({ ...base, kind: "water_stress", reason: alertReason("water_stress") });
-  }
-
-  const annualRainfallMm = numberValue(era5.annualRainfallMm);
-  if (annualRainfallMm != null && annualRainfallMm > 3000) {
-    candidates.push({ ...base, kind: "fungal_risk", reason: alertReason("fungal_risk") });
-  }
-
-  return candidates;
+    scenario: buildSentinelAgentScenario({
+      scenario,
+      context,
+      templateKey: env.WHATSAPP_TEMPLATE_NAME,
+    }),
+  }));
 }
 
 async function loadLatestSnapshots() {
@@ -141,19 +166,26 @@ async function loadLatestSnapshots() {
       select distinct on (cs.lot_id)
         cs.id as snapshot_id,
         cs.created_at as snapshot_created_at,
+        cs.source_mode,
         cs.risk_score,
         cs.risk_tier,
         cs.eudr_status,
         cs.eligible_for_investment,
         cs.score_hash,
-        cs.yield_predict,
+        cs.sentinel2,
+        cs.sentinel1,
         cs.era5,
+        cs.eudr,
+        cs.yield_predict,
         cs.chain,
         l.id as lot_id,
         l.code as lot_code,
         l.farm_name,
         l.region,
         l.country,
+        l.variety,
+        l.altitude_masl,
+        l.area_manzanas,
         u.display_name as farmer_name,
         u.phone as farmer_phone
       from copernicus_snapshots cs
@@ -180,15 +212,10 @@ function templatePayload(candidate: AlertCandidate) {
       components: [
         {
           type: "body",
-          parameters: [
-            { type: "text", text: candidate.farmerName },
-            { type: "text", text: candidate.farmName },
-            { type: "text", text: candidate.lotCode },
-            { type: "text", text: String(candidate.riskScore) },
-            { type: "text", text: candidate.yieldRange },
-            { type: "text", text: candidate.publicPath },
-            { type: "text", text: candidate.reason },
-          ],
+          parameters: candidate.scenario.whatsapp.variables.map((text: string) => ({
+            type: "text",
+            text,
+          })),
         },
       ],
     },
@@ -197,7 +224,19 @@ function templatePayload(candidate: AlertCandidate) {
 
 async function sendWhatsApp(candidate: AlertCandidate) {
   if (env.WHATSAPP_DRY_RUN) {
-    console.log(JSON.stringify({ dryRun: true, kind: candidate.kind, payload: templatePayload(candidate) }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          dryRun: true,
+          scenario: candidate.scenario.scenario,
+          signal: candidate.scenario.signal,
+          demoData: candidate.scenario.demoData,
+          payload: templatePayload(candidate),
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
@@ -221,7 +260,15 @@ async function sendWhatsApp(candidate: AlertCandidate) {
     throw new Error(`WhatsApp API failed ${response.status}: ${await response.text()}`);
   }
 
-  console.log(JSON.stringify({ sent: true, kind: candidate.kind, to: candidate.to, lotCode: candidate.lotCode }));
+  console.log(
+    JSON.stringify({
+      sent: true,
+      scenario: candidate.scenario.scenario,
+      signal: candidate.scenario.signal,
+      to: candidate.to,
+      lotCode: candidate.scenario.context.lot.code,
+    }),
+  );
 }
 
 async function main() {
