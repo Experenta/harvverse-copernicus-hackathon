@@ -6,6 +6,7 @@ import {
   sentinelAgentSignals,
 } from "@harvverse-copernicus-hackathon/api/lib/sentinel-agent";
 
+import { requireSentinelAgentRequest } from "../../_auth";
 import { jsonError } from "../_lib";
 
 const knowledgeQuerySchema = z.object({
@@ -13,6 +14,9 @@ const knowledgeQuerySchema = z.object({
 });
 
 export async function GET(request: Request) {
+  const authError = requireSentinelAgentRequest(request);
+  if (authError) return authError;
+
   const url = new URL(request.url);
   const parsed = knowledgeQuerySchema.safeParse({
     signal: url.searchParams.get("signal") ?? undefined,

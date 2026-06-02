@@ -161,13 +161,16 @@ async function getLotPlanEconomics(
     lot.activePlanCode == null
       ? null
       : await db.query.plans.findFirst({
-          where: eq(plans.planCode, lot.activePlanCode),
+          where: and(
+            eq(plans.planCode, lot.activePlanCode),
+            eq(plans.status, "approved_for_demo"),
+          ),
         });
 
   const lotPlan =
     activePlan ??
     (await db.query.plans.findFirst({
-      where: eq(plans.lotId, lot.id),
+      where: and(eq(plans.lotId, lot.id), eq(plans.status, "approved_for_demo")),
       orderBy: [desc(plans.createdAt)],
     }));
 
@@ -176,7 +179,10 @@ async function getLotPlanEconomics(
     (lot.code == null
       ? null
       : await db.query.plans.findFirst({
-          where: eq(plans.lotCode, lot.code),
+          where: and(
+            eq(plans.lotCode, lot.code),
+            eq(plans.status, "approved_for_demo"),
+          ),
           orderBy: [desc(plans.createdAt)],
         }));
 

@@ -6,7 +6,7 @@ import {
   type SentinelAgentContext,
   type SentinelAgentScenario,
   type SentinelAgentScenarioResponse,
-} from "../../../packages/api/src/lib/sentinel-agent";
+} from "@harvverse-copernicus-hackathon/api/lib/sentinel-agent";
 import { config } from "dotenv";
 import pg from "pg";
 import { z } from "zod";
