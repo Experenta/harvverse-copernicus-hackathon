@@ -341,19 +341,18 @@ export default function PublicLotProofPage() {
                     {snapshot ? t(`source_mode.${snapshot.sourceMode}` as any) : t("source_mode_pending")}
                   </Badge>
                 </div>
-                <div className="relative min-h-[320px] flex-1 bg-white/5">
+                <div className="h-[420px] w-full bg-white/5">
                   {polygon ? (
                     <PolygonDisplayMap
                       polygon={polygon}
                       color="#67E8F9"
                       fillOpacity={0.22}
-                      expectedCenter={mapCenter}
                       mapLabel={t("satellite_map")}
                       invalidPolygonMessage={t("invalid_polygon")}
                       tileErrorMessage={t("tile_error")}
                     />
                   ) : (
-                    <div className="flex h-full min-h-[320px] items-center justify-center text-white/30 italic">
+                    <div className="flex h-full items-center justify-center text-white/30 italic">
                       {t("polygon_pending")}
                     </div>
                   )}
