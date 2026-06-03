@@ -1368,28 +1368,26 @@ export default function CreateLotPage() {
                 {t("save_draft")}
               </Button>
 
-              <Tooltip>
-                <TooltipTrigger>
-                  <span className="flex-1">
-                    <Button
-                      type="button"
-                      disabled={isSubmitting || !farm || !defineTermsNow || !hasValidPlanTerms}
-                      className="h-11 w-full bg-primary hover:bg-primary/90 text-[#001020] font-bold disabled:cursor-not-allowed disabled:opacity-50"
-                      onClick={form.handleSubmit((values) => onSubmit(values, "publish"))}
-                    >
-                      {isSubmitting && submitMode === "publish" ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                      )}
-                      {t("save_publish")}
-                    </Button>
-                  </span>
-                </TooltipTrigger>
+              <div className="flex-1">
+                <Button
+                  type="button"
+                  disabled={isSubmitting || !farm || !defineTermsNow || !hasValidPlanTerms}
+                  className="h-11 w-full bg-primary hover:bg-primary/90 text-[#001020] font-bold disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={form.handleSubmit((values) => onSubmit(values, "publish"))}
+                >
+                  {isSubmitting && submitMode === "publish" ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  )}
+                  {t("save_publish")}
+                </Button>
                 {!defineTermsNow || !hasValidPlanTerms ? (
-                  <TooltipContent>{t("publish_requires_terms")}</TooltipContent>
+                  <p className="mt-2 text-xs text-yellow-300">
+                    {t("publish_requires_terms")}
+                  </p>
                 ) : null}
-              </Tooltip>
+              </div>
             </div>
           </form>
         </Form>
