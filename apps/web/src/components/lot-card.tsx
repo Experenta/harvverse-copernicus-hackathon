@@ -34,6 +34,7 @@ interface Plan {
 interface Lot {
   id: number;
   code?: string | null;
+  descriptiveName?: string | null;
   farmName: string;
   region: string;
   country: string;
@@ -181,8 +182,13 @@ export function LotCard({ lot, variant, pendingProposals = 0 }: LotCardProps) {
 
         <div className="flex flex-1 flex-col p-4 card-highlight">
           <h3 className="mb-0.5 truncate font-trenda text-base font-bold leading-tight text-white group-hover:text-primary transition-colors">
-            {lot.code ?? t("lot_id", { id: lot.id })}
+            {lot.descriptiveName ?? lot.code ?? t("lot_id", { id: lot.id })}
           </h3>
+          {lot.descriptiveName && lot.code && (
+            <p className="mb-1 truncate text-[10px] text-white/40 font-mono uppercase">
+              {lot.code}
+            </p>
+          )}
           <p className="mb-1 truncate text-sm text-white/80">{lot.farmName}</p>
           <p className="mb-3 flex items-center gap-1 text-xs text-white/60">
             <MapPin className="size-3 text-primary/60" />

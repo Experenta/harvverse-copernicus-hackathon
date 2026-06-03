@@ -18,7 +18,10 @@ const MAX_FARM_IMAGES = 10;
 const ALLOWED_FARM_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 const farmWritableSchema = insertFarmSchema.pick({
   name: true,
+  farmCode: true,
   country: true,
+  department: true,
+  municipality: true,
   region: true,
   altitudeMasl: true,
   totalArea: true,
@@ -29,6 +32,11 @@ const farmWritableSchema = insertFarmSchema.pick({
   latitude: true,
   longitude: true,
   polygon: true,
+  waterSource: true,
+  roadAccess: true,
+  shadeTrees: true,
+  previousTotalProductionQq: true,
+  productionDataYear: true,
 });
 
 type FarmImageRecord = {
