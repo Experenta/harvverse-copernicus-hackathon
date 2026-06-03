@@ -143,6 +143,29 @@ export const eudrStatusEnum = pgEnum("eudr_status", [
 	"unknown",
 ]);
 
+export const verificationStatusEnum = pgEnum("verification_status", [
+	"unverified",
+	"pending",
+	"verified",
+	"rejected",
+]);
+
+export const attachmentOwnerTypeEnum = pgEnum("attachment_owner_type", [
+	"user",
+	"farm",
+	"lot",
+]);
+
+export const attachmentPurposeEnum = pgEnum("attachment_purpose", [
+	"dni_image",
+	"ihcafe_card",
+	"farm_panorama",
+	"farm_map",
+	"lot_photo",
+	"plant_photo",
+	"other",
+]);
+
 /* ──────────────────────────────────────────────────────────────────────────
  * Tables
  * ────────────────────────────────────────────────────────────────────────── */
@@ -165,6 +188,60 @@ export const users = pgTable(
 	(table) => ({
 		walletAddressIdx: index("users_wallet_address_idx").on(table.walletAddress),
 		roleIdx: index("users_role_idx").on(table.role),
+	}),
+);
+
+export const producerProfiles = pgTable(
+	"producer_profiles",
+	{
+		id: serial("id").primaryKey(),
+		userId: integer("user_id")
+			.notNull()
+			.references(() => users.id)
+			.unique(),
+		legalFullName: text("legal_full_name"),
+		dni: text("dni"),
+		ihcafeNumber: text("ihcafe_number"),
+		whatsappPhone: text("whatsapp_phone"),
+		residenceDepartment: text("residence_department"),
+		residenceMunicipality: text("residence_municipality"),
+		coffeeExperienceYears: integer("coffee_experience_years"),
+		currentCertifications: text("current_certifications").array(),
+		verificationStatus: verificationStatusEnum("verification_status")
+			.notNull()
+			.default("unverified"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().notNull(),
+	},
+	(table) => ({
+		userIdIdx: index("producer_profiles_user_id_idx").on(table.userId),
+		dniIdx: index("producer_profiles_dni_idx").on(table.dni),
+	}),
+);
+
+export const attachments = pgTable(
+	"attachments",
+	{
+		id: serial("id").primaryKey(),
+		ownerType: attachmentOwnerTypeEnum("owner_type").notNull(),
+		ownerId: integer("owner_id").notNull(),
+		purpose: attachmentPurposeEnum("purpose").notNull().default("other"),
+		storageProvider: varchar("storage_provider", { length: 20 })
+			.notNull()
+			.default("database"),
+		storageBucket: text("storage_bucket"),
+		storageKey: text("storage_key"),
+		url: text("url"),
+		mimeType: varchar("mime_type", { length: 50 }),
+		filename: text("filename"),
+		sizeBytes: integer("size_bytes"),
+		checksumSha256: varchar("checksum_sha256", { length: 64 }),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at").defaultNow().notNull(),
+	},
+	(table) => ({
+		ownerIdx: index("attachments_owner_idx").on(table.ownerType, table.ownerId),
+		purposeIdx: index("attachments_purpose_idx").on(table.purpose),
 	}),
 );
 
@@ -227,7 +304,10 @@ export const farms = pgTable(
 			.notNull()
 			.references(() => users.id),
 		name: text("name").notNull(),
+		farmCode: text("farm_code"),
 		country: text("country").notNull(),
+		department: text("department"),
+		municipality: text("municipality"),
 		region: text("region").notNull(),
 		altitudeMasl: integer("altitude_masl"),
 		totalArea: numeric("total_area"),
@@ -241,11 +321,17 @@ export const farms = pgTable(
 		polygon: jsonb("polygon"),
 		coeScore: numeric("coe_score"),
 		verified: boolean("verified").default(false),
+		previousTotalProductionQq: numeric("previous_total_production_qq"),
+		productionDataYear: integer("production_data_year"),
+		waterSource: text("water_source"),
+		roadAccess: text("road_access"),
+		shadeTrees: text("shade_trees"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at").defaultNow().notNull(),
 	},
 	(table) => ({
 		farmerIdIdx: index("farms_farmer_id_idx").on(table.farmerId),
+		farmCodeIdx: index("farms_farm_code_idx").on(table.farmCode),
 	}),
 );
 
@@ -295,18 +381,36 @@ export const lots = pgTable(
 			.notNull()
 			.references(() => farms.id),
 		code: varchar("code", { length: 30 }).unique(),
+		descriptiveName: text("descriptive_name"),
 		farmName: text("farm_name").notNull(),
 		farmerWallet: text("farmer_wallet").notNull(),
 		region: text("region").notNull(),
 		country: text("country").notNull(),
 		variety: text("variety"),
+		varietiesComposition: jsonb("varieties_composition"),
 		process: text("process"),
+		processingMethod: text("processing_method"),
 		altitudeMasl: integer("altitude_masl"),
 		areaManzanas: numeric("area_manzanas"),
 		gpsLat: numeric("gps_lat"),
 		gpsLng: numeric("gps_lng"),
 		numTrees: integer("num_trees"),
 		plantAgeYears: integer("plant_age_years"),
+		averagePlantAgeYears: integer("average_plant_age_years"),
+		renovationInProgress: boolean("renovation_in_progress"),
+		newVariety: text("new_variety"),
+		renovationPercent: numeric("renovation_percent"),
+		renovationStartYear: integer("renovation_start_year"),
+		managementType: text("management_type"),
+		previousProductionQq: numeric("previous_production_qq"),
+		productionDataYear: integer("production_data_year"),
+		rustLastCycle: text("rust_last_cycle"),
+		borerLastCycle: text("borer_last_cycle"),
+		fertilizedLastCycle: boolean("fertilized_last_cycle"),
+		availableForCoinvestment: boolean("available_for_coinvestment"),
+		acceptsSplit6040: boolean("accepts_split_6040"),
+		minimumPriceCentsPerLb: integer("minimum_price_cents_per_lb"),
+		lotObservations: text("lot_observations"),
 		scaScoreTenths: integer("sca_score_tenths"),
 		harvestYear: integer("harvest_year"),
 		cycleNotes: text("cycle_notes"),
@@ -787,13 +891,27 @@ export const agentEvents = pgTable(
  * Relations
  * ────────────────────────────────────────────────────────────────────────── */
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
 	farms: many(farms),
 	proposals: many(proposals),
 	partnerships: many(partnerships),
 	evidenceRecords: many(evidenceRecords),
 	walletSessions: many(walletSessions),
+	producerProfile: one(producerProfiles, {
+		fields: [users.id],
+		references: [producerProfiles.userId],
+	}),
 }));
+
+export const producerProfilesRelations = relations(
+	producerProfiles,
+	({ one }) => ({
+		user: one(users, {
+			fields: [producerProfiles.userId],
+			references: [users.id],
+		}),
+	}),
+);
 
 export const walletSessionsRelations = relations(walletSessions, ({ one }) => ({
 	user: one(users, {
@@ -999,6 +1117,24 @@ export const insertCustodyAccountSchema = createInsertSchema(custodyAccounts).om
 export const selectCustodyAccountSchema = createSelectSchema(custodyAccounts);
 export type CustodyAccount = typeof custodyAccounts.$inferSelect;
 export type InsertCustodyAccount = z.infer<typeof insertCustodyAccountSchema>;
+
+export const insertProducerProfileSchema = createInsertSchema(producerProfiles).omit({
+	id: true,
+	createdAt: true,
+	updatedAt: true,
+});
+export const selectProducerProfileSchema = createSelectSchema(producerProfiles);
+export type ProducerProfile = typeof producerProfiles.$inferSelect;
+export type InsertProducerProfile = z.infer<typeof insertProducerProfileSchema>;
+
+export const insertAttachmentSchema = createInsertSchema(attachments).omit({
+	id: true,
+	createdAt: true,
+	updatedAt: true,
+});
+export const selectAttachmentSchema = createSelectSchema(attachments);
+export type Attachment = typeof attachments.$inferSelect;
+export type InsertAttachment = z.infer<typeof insertAttachmentSchema>;
 
 export const insertFarmSchema = createInsertSchema(farms).omit({
 	id: true,

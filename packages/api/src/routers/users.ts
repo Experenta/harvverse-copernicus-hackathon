@@ -1,5 +1,7 @@
 import {
+  insertProducerProfileSchema,
   insertUserSchema,
+  producerProfiles,
   userRoleEnum,
   userStatusEnum,
   users,
@@ -18,6 +20,9 @@ export const usersRouter = router({
     .query(async ({ ctx }) => {
       const user = await ctx.db.query.users.findFirst({
         where: eq(users.clerkId, ctx.clerkId),
+        with: {
+          producerProfile: true,
+        },
       });
       return user ?? null;
     }),
@@ -60,6 +65,38 @@ export const usersRouter = router({
       }
 
       return user;
+    }),
+
+  upsertProducerProfile: protectedProcedure
+    .input(insertProducerProfileSchema.omit({ userId: true, verificationStatus: true }))
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.db.query.users.findFirst({
+        where: eq(users.clerkId, ctx.clerkId),
+      });
+      if (!user) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "User not found" });
+      }
+
+      const [profile] = await ctx.db
+        .insert(producerProfiles)
+        .values({ ...input, userId: user.id })
+        .onConflictDoUpdate({
+          target: producerProfiles.userId,
+          set: {
+            ...input,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+
+      if (!profile) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to upsert producer profile",
+        });
+      }
+
+      return profile;
     }),
 
   updateStatus: protectedProcedure

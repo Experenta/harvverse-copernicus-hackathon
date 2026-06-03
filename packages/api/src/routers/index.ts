@@ -8,6 +8,7 @@ import { proposalsRouter } from "./proposals";
 import { settlementsRouter } from "./settlements";
 import { usersRouter } from "./users";
 import { waitlistRouter } from "./waitlist";
+import { attachmentsRouter } from "./attachments";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => "OK"),
@@ -20,6 +21,7 @@ export const appRouter = router({
   evidence: evidenceRouter,
   settlements: settlementsRouter,
   waitlist: waitlistRouter,
+  attachments: attachmentsRouter,
 });
 
 export type AppRouter = typeof appRouter;
