@@ -1,0 +1,11 @@
+# Secrets — nunca subir
+.env
+.env.*
+!.env.example
+
+# Build / cache local
+dist/
+*.tsbuildinfo
+
+# Logs locales
+*.log

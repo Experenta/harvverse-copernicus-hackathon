@@ -1,0 +1,33 @@
+{
+  "name": "@harvverse-copernicus-hackathon/sentinel-agent",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "dev:api": "node --import tsx src/dev/local-server.ts",
+    "agent:scenario": "node --import tsx src/cli/run-scenario-fixture.ts",
+    "agent:scenario:dry": "node --import tsx src/cli/run-scenario-fixture.ts --dry-run"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@ai-sdk/openai": "^2.0.0",
+    "ai": "^5.0.0",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@harvverse-copernicus-hackathon/config": "workspace:*",
+    "@types/node": "^22.13.14",
+    "tsx": "^4.19.4",
+    "typescript": "catalog:"
+  }
+}
