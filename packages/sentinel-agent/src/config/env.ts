@@ -35,12 +35,16 @@ const agentEnvSchema = z.object({
   SENTINEL_AGENT_API_KEY: optionalString,
   /** Opcional: protege rutas /api/* del agente (Postman: header x-sentinel-agent-key) */
   SENTINEL_AGENT_INBOUND_KEY: optionalString,
-  /** Gupshup WhatsApp templates */
-  GUPSHUP_API_KEY: optionalString,
+  /** Gupshup WhatsApp — Partner API */
+  GUPSHUP_APP_ID: optionalString,
+  /** Partner App Token (sk_...) — header Authorization en Partner API */
+  GUPSHUP_PARTNER_TOKEN: optionalString,
+  /** App Token — alternativa si el endpoint lo requiere en lugar del Partner Token */
+  GUPSHUP_APP_TOKEN: optionalString,
   GUPSHUP_SOURCE: optionalString,
   GUPSHUP_APP_NAME: optionalString,
   GUPSHUP_DEFAULT_TEMPLATE_KEY: z.preprocess(
-    (value) => optionalEnv(value) ?? "harvverse_sentinel_alert",
+    (value) => optionalEnv(value) ?? "harvverse_sentinel_alert_v2",
     z.string().min(1),
   ),
   GUPSHUP_DEFAULT_TEMPLATE_ID: optionalString,
@@ -68,8 +72,8 @@ export function hasLlmProvider(): boolean {
 
 export function hasGupshupCredentials(): boolean {
   return Boolean(
-    agentEnv.GUPSHUP_API_KEY &&
-      agentEnv.GUPSHUP_SOURCE &&
-      agentEnv.GUPSHUP_APP_NAME,
+    agentEnv.GUPSHUP_APP_ID &&
+      (agentEnv.GUPSHUP_PARTNER_TOKEN ?? agentEnv.GUPSHUP_APP_TOKEN) &&
+      agentEnv.GUPSHUP_SOURCE,
   );
 }

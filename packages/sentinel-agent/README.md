@@ -10,7 +10,8 @@ No modifica `apps/web`. Despliegue: Vercel con Root Directory `packages/sentinel
 |-----|-----------|
 | [docs/00-bitacora.md](./docs/00-bitacora.md) | Historial y decisiones |
 | [docs/01-arquitectura.md](./docs/01-arquitectura.md) | Diagrama y módulos |
-| [docs/04-gupshup-y-webhook.md](./docs/04-gupshup-y-webhook.md) | Postman, webhook.site, env |
+| [docs/04-gupshup-y-webhook.md](./docs/04-gupshup-y-webhook.md) | Cómo funcionan templates, Postman, env |
+| [docs/gupshup-template-brief.md](./docs/gupshup-template-brief.md) | Brief para crear template en Gupshup (compartir externo) |
 | [docs/sheylla_endpoints.txt](./docs/sheylla_endpoints.txt) | Contrato Harvverse |
 | [fixtures/postman/](./fixtures/postman/) | Colección Postman |
 

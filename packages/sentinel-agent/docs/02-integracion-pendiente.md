@@ -10,7 +10,7 @@
 
 ## Pendiente
 
-1. **Templates Gupshup** — IDs en `GUPSHUP_TEMPLATE_HARVVERSE_SENTINEL_ALERT`
+1. **Templates Gupshup** — Partner crea template ([brief](./gupshup-template-brief.md)); dev pone ID en `GUPSHUP_TEMPLATE_HARVVERSE_SENTINEL_ALERT` ([04](./04-gupshup-y-webhook.md))
 2. **Vercel** — proyecto propio, Root Directory `packages/sentinel-agent`, env de producción
 3. **Harvverse en prod** — `HARVVERSE_API_BASE_URL` apuntando al backend real
 4. **LLM (opcional)** — refinar `message.body` con guardrails sin tocar slots 1–6

@@ -16,8 +16,8 @@
       "areaManzanas": 1.23
     },
     "farmer": {
-      "name": "Javier Puerto",
-      "phone": "+50499990001"
+      "name": "Claudio",
+      "phone": "50488423064"
     },
     "snapshot": {
       "sourceMode": "live",
@@ -44,10 +44,10 @@
   "message": {
     "templateKey": "sentinel_ndvi_drop_money",
     "title": "Caída de NDVI",
-    "body": "Hola Javier, detectamos una caída de NDVI en tu lote lotetest. Risk Score 90. Revisa el detalle en el enlace."
+    "body": "Hola Sheylla, detectamos una caída de NDVI en tu lote lotetest. Risk Score 90. Revisa el detalle en el enlace."
   },
   "whatsapp": {
-    "templateKey": "harvverse_sentinel_alert",
+    "templateKey": "harvverse_sentinel_alert_v2",
     "variables": [
       "Nombre farmer",
       "Nombre finca",
