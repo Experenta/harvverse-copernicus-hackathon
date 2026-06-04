@@ -40,6 +40,15 @@ const lotStatusSchema = z.enum(lotStatusEnum.enumValues);
 const copernicusSourceModeSchema = z.enum(copernicusSourceModeEnum.enumValues);
 const lotCreateStatusSchema = z.enum(["draft", "available"]);
 const execFileAsync = promisify(execFile);
+const coverImageSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (value) =>
+      z.string().url().safeParse(value).success ||
+      /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value),
+    "Cover image must be a URL or a JPG/PNG/WebP data URL",
+  );
 const publicProofLotStatuses = new Set<string>([
   "available",
   "reserved",
@@ -49,18 +58,36 @@ const publicProofLotStatuses = new Set<string>([
 const lotCreateSchema = insertLotSchema.pick({
   farmId: true,
   code: true,
+  descriptiveName: true,
   farmName: true,
   farmerWallet: true,
   region: true,
   country: true,
   variety: true,
+  varietiesComposition: true,
   process: true,
+  processingMethod: true,
   altitudeMasl: true,
   areaManzanas: true,
   gpsLat: true,
   gpsLng: true,
   numTrees: true,
   plantAgeYears: true,
+  averagePlantAgeYears: true,
+  renovationInProgress: true,
+  newVariety: true,
+  renovationPercent: true,
+  renovationStartYear: true,
+  managementType: true,
+  previousProductionQq: true,
+  productionDataYear: true,
+  rustLastCycle: true,
+  borerLastCycle: true,
+  fertilizedLastCycle: true,
+  availableForCoinvestment: true,
+  acceptsSplit6040: true,
+  minimumPriceCentsPerLb: true,
+  lotObservations: true,
   scaScoreTenths: true,
   harvestYear: true,
   cycleNotes: true,
@@ -334,17 +361,23 @@ function toPublicLot(lot: PublicLotRecord) {
   return {
     id: lot.id,
     code: lot.code,
+    descriptiveName: lot.descriptiveName,
     farmName: lot.farmName,
     region: lot.region,
     country: lot.country,
     variety: lot.variety,
     process: lot.process,
+    processingMethod: lot.processingMethod,
     altitudeMasl: lot.altitudeMasl,
     areaManzanas: lot.areaManzanas,
     gpsLat: lot.gpsLat,
     gpsLng: lot.gpsLng,
     numTrees: lot.numTrees,
     plantAgeYears: lot.plantAgeYears,
+    averagePlantAgeYears: lot.averagePlantAgeYears,
+    managementType: lot.managementType,
+    availableForCoinvestment: lot.availableForCoinvestment,
+    acceptsSplit6040: lot.acceptsSplit6040,
     scaScoreTenths: lot.scaScoreTenths,
     harvestYear: lot.harvestYear,
     cycleNotes: lot.cycleNotes,
@@ -378,7 +411,10 @@ function toPublicLot(lot: PublicLotRecord) {
     farm: {
       id: lot.farm.id,
       name: lot.farm.name,
+      farmCode: lot.farm.farmCode,
       country: lot.farm.country,
+      department: lot.farm.department,
+      municipality: lot.farm.municipality,
       region: lot.farm.region,
       altitudeMasl: lot.farm.altitudeMasl,
       totalArea: lot.farm.totalArea,
@@ -392,7 +428,12 @@ function toPublicLot(lot: PublicLotRecord) {
       polygon: lot.farm.polygon,
       coeScore: lot.farm.coeScore,
       verified: lot.farm.verified,
+      waterSource: lot.farm.waterSource,
+      roadAccess: lot.farm.roadAccess,
+      shadeTrees: lot.farm.shadeTrees,
     },
+    createdAt: lot.createdAt,
+    updatedAt: lot.updatedAt,
   };
 }
 
@@ -563,15 +604,32 @@ export const lotsRouter = router({
       }),
     )
     .mutation(async ({ input }) => {
-      const altitudeMeters = await fetchCopernicusDemElevation({
-        lat: input.lat,
-        lng: input.lng,
-      });
+      try {
+        const altitudeMeters = await fetchCopernicusDemElevation({
+          lat: input.lat,
+          lng: input.lng,
+        });
 
-      return {
-        altitudeMeters,
-        provider: "open_meteo_copernicus_dem_glo90" as const,
-      };
+        return {
+          ok: true as const,
+          altitudeMeters,
+          provider: "open_meteo_copernicus_dem_glo90" as const,
+          message: null,
+        };
+      } catch (error) {
+        console.warn("[lots.detectAltitude] DEM altitude lookup failed:", {
+          lat: input.lat,
+          lng: input.lng,
+          message: error instanceof Error ? error.message : "Unknown DEM lookup failure.",
+        });
+
+        return {
+          ok: false as const,
+          altitudeMeters: null,
+          provider: "open_meteo_copernicus_dem_glo90" as const,
+          message: "DEM altitude could not be detected automatically.",
+        };
+      }
     }),
 
   computeCopernicusSnapshot: protectedProcedure
@@ -849,9 +907,10 @@ export const lotsRouter = router({
         lotId: z.number().int().positive(),
         // Section B — marketing, locked when not available
         variety: z.string().trim().max(100).optional(),
+        process: z.string().trim().optional(),
         profile: z.string().trim().optional(),
         summary: z.string().trim().optional(),
-        coverImages: z.array(z.string().url()).optional(),
+        coverImages: z.array(coverImageSchema).optional(),
         scaScoreTenths: z.number().int().min(0).max(1000).optional(),
         // Section C — agronomic, always editable
         numTrees: z.number().int().min(0).optional(),
@@ -859,6 +918,25 @@ export const lotsRouter = router({
         areaManzanas: z.number().min(0).optional(),
         harvestYear: z.number().int().min(2000).max(2100).optional(),
         cycleNotes: z.string().trim().optional(),
+        // NEW FIELDS
+        descriptiveName: z.string().trim().optional(),
+        varietiesComposition: z.any().optional(),
+        processingMethod: z.string().trim().optional(),
+        averagePlantAgeYears: z.number().int().min(0).optional(),
+        renovationInProgress: z.boolean().optional(),
+        newVariety: z.string().trim().optional(),
+        renovationPercent: z.number().min(0).max(100).optional(),
+        renovationStartYear: z.number().int().optional(),
+        managementType: z.string().trim().optional(),
+        previousProductionQq: z.number().min(0).optional(),
+        productionDataYear: z.number().int().optional(),
+        rustLastCycle: z.string().trim().optional(),
+        borerLastCycle: z.string().trim().optional(),
+        fertilizedLastCycle: z.boolean().optional(),
+        availableForCoinvestment: z.boolean().optional(),
+        acceptsSplit6040: z.boolean().optional(),
+        minimumPriceCentsPerLb: z.number().int().min(0).optional(),
+        lotObservations: z.string().trim().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -880,27 +958,41 @@ export const lotsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "You do not own this lot" });
       }
 
-      const { lotId, areaManzanas, ...rest } = input;
+      const {
+        lotId,
+        areaManzanas,
+        variety,
+        profile,
+        summary,
+        coverImages,
+        scaScoreTenths,
+        descriptiveName,
+        process,
+        renovationPercent,
+        previousProductionQq,
+        ...agronomicFields
+      } = input;
 
       // Marketing fields can be edited before publish and while available.
       const sectionBFields =
         lot.status === "available" || lot.status === "draft"
           ? {
-              variety: rest.variety,
-              profile: rest.profile,
-              summary: rest.summary,
-              coverImages: rest.coverImages,
-              scaScoreTenths: rest.scaScoreTenths,
+              variety,
+              profile,
+              summary,
+              coverImages,
+              scaScoreTenths,
+              descriptiveName,
+              process,
             }
           : {};
 
       const updateValues = {
+        ...agronomicFields,
         ...sectionBFields,
-        numTrees: rest.numTrees,
-        plantAgeYears: rest.plantAgeYears,
         areaManzanas: areaManzanas != null ? String(areaManzanas) : undefined,
-        harvestYear: rest.harvestYear,
-        cycleNotes: rest.cycleNotes,
+        renovationPercent: renovationPercent != null ? String(renovationPercent) : undefined,
+        previousProductionQq: previousProductionQq != null ? String(previousProductionQq) : undefined,
         updatedAt: new Date(),
       };
 

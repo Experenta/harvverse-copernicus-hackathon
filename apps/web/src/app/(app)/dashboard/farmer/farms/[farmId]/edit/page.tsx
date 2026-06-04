@@ -37,19 +37,33 @@ const COUNTRIES = [
   "Honduras", "Guatemala", "Costa Rica", "El Salvador", "Nicaragua", "Panama",
 ];
 
+const HONDURAS_DEPARTMENTS = [
+  "Atlántida", "Choluteca", "Colón", "Comayagua", "Copán", "Cortés", "El Paraíso",
+  "Francisco Morazán", "Gracias a Dios", "Intibucá", "Islas de la Bahía", "La Paz",
+  "Lempira", "Ocotepeque", "Olancho", "Santa Bárbara", "Valle", "Yoro",
+];
+
 const CERTIFICATIONS = [
   "Organic", "Fair Trade", "Rainforest Alliance", "UTZ", "Bird Friendly", "Cup of Excellence",
 ];
 
 const editFarmSchema = z.object({
   name: z.string().min(2, "Farm name required").max(100, "Max 100 characters"),
+  farmCode: z.string().optional(),
   country: z.string().min(1, "Country required"),
+  department: z.string().optional(),
+  municipality: z.string().optional(),
   region: z.string().min(2, "Region required"),
   altitudeMasl: z.coerce.number().int().min(0).max(4000, "Max 4000 m").optional(),
   totalArea: z.coerce.number().min(0.1).optional(),
   varieties: z.array(z.string()).min(1, "Select at least one variety"),
   certifications: z.array(z.string()).optional(),
   description: z.string().optional(),
+  waterSource: z.string().optional(),
+  roadAccess: z.string().optional(),
+  shadeTrees: z.string().optional(),
+  previousTotalProductionQq: z.coerce.number().min(0).optional(),
+  productionDataYear: z.coerce.number().int().optional(),
 });
 
 type EditFarmInput = z.input<typeof editFarmSchema>;
@@ -160,13 +174,21 @@ export default function EditFarmPage() {
     resolver: zodResolver(editFarmSchema),
     defaultValues: {
       name: "",
+      farmCode: "",
       country: "Honduras",
+      department: "",
+      municipality: "",
       region: "",
       altitudeMasl: undefined,
       totalArea: undefined,
       varieties: [],
       certifications: [],
       description: "",
+      waterSource: "",
+      roadAccess: "",
+      shadeTrees: "",
+      previousTotalProductionQq: undefined,
+      productionDataYear: undefined,
     },
   });
 
@@ -174,13 +196,21 @@ export default function EditFarmPage() {
     if (!farm) return;
     form.reset({
       name: farm.name,
+      farmCode: farm.farmCode ?? "",
       country: farm.country,
+      department: farm.department ?? "",
+      municipality: farm.municipality ?? "",
       region: farm.region,
       altitudeMasl: farm.altitudeMasl ?? undefined,
       totalArea: farm.totalArea ? Number(farm.totalArea) : undefined,
       varieties: farm.varieties ?? [],
       certifications: farm.certifications ?? [],
       description: farm.description ?? "",
+      waterSource: farm.waterSource ?? "",
+      roadAccess: farm.roadAccess ?? "",
+      shadeTrees: farm.shadeTrees ?? "",
+      previousTotalProductionQq: farm.previousTotalProductionQq ? Number(farm.previousTotalProductionQq) : undefined,
+      productionDataYear: farm.productionDataYear ?? undefined,
     });
   }, [farm]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -189,13 +219,21 @@ export default function EditFarmPage() {
       id: farmId,
       data: {
         name: values.name,
+        farmCode: values.farmCode || undefined,
         country: values.country,
+        department: values.department || undefined,
+        municipality: values.municipality || undefined,
         region: values.region,
         altitudeMasl: values.altitudeMasl,
         totalArea: values.totalArea != null ? String(values.totalArea) : undefined,
         varieties: values.varieties,
         certifications: values.certifications ?? [],
         description: values.description || undefined,
+        waterSource: values.waterSource || undefined,
+        roadAccess: values.roadAccess || undefined,
+        shadeTrees: values.shadeTrees || undefined,
+        previousTotalProductionQq: values.previousTotalProductionQq != null ? String(values.previousTotalProductionQq) : undefined,
+        productionDataYear: values.productionDataYear,
       },
     });
   }
@@ -235,19 +273,39 @@ export default function EditFarmPage() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white/80">{t("name")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Finca La Huerta" className={inputClasses} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/80">{t("name")}</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Finca La Huerta" className={inputClasses} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="farmCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/80">{t("farm_code")}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., HON-001"
+                          className={inputClasses}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
@@ -272,6 +330,54 @@ export default function EditFarmPage() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="department"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/80">{t("department")}</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={t("department")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {HONDURAS_DEPARTMENTS.map((d) => (
+                              <SelectItem key={d} value={d}>
+                                {d}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="municipality"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/80">{t("municipality")}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., Siguatepeque"
+                          className={inputClasses}
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -332,6 +438,120 @@ export default function EditFarmPage() {
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                <div className="mb-4 border-b border-white/10 pb-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">
+                    Agronomic Details
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="waterSource"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("water_source")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Natural spring"
+                            className={inputClasses}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="roadAccess"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("road_access")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Dirt road, 4x4 recommended"
+                            className={inputClasses}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="shadeTrees"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("shade_trees")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Inga, Cedar, Fruit trees"
+                            className={inputClasses}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+                <div className="mb-4 border-b border-white/10 pb-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">
+                    Production History
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="previousTotalProductionQq"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("previous_total_production_qq")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            className={inputClasses}
+                            {...field}
+                            value={typeof field.value === "number" ? field.value : ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="productionDataYear"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("production_data_year")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="e.g., 2023"
+                            className={inputClasses}
+                            {...field}
+                            value={typeof field.value === "number" ? field.value : ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               <FormField

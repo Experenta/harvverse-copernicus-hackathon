@@ -206,7 +206,7 @@ export default function PublicFarmDetailPage() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 flex items-center gap-2">
                     <Sprout className="size-3 text-primary" /> {tf("label_variety")}
                   </p>
-                  <p className="text-lg font-bold text-white/80">{(farm.varieties ?? [])[0] ?? tf("specialty_blend")}</p>
+                  <p className="text-lg font-bold text-white/80">{(farm.varieties ?? []).join(", ") || tf("specialty_blend")}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 flex items-center gap-2">
@@ -214,6 +214,30 @@ export default function PublicFarmDetailPage() {
                   </p>
                   <p className="text-lg font-bold text-white/80">{farm.areaManzanas ? `${Number(farm.areaManzanas).toFixed(1)} ${tf("unit_mzn")}` : "—"}</p>
                 </div>
+                {farm.department && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">{tf("department")}</p>
+                    <p className="text-lg font-bold text-white/80">{farm.department}</p>
+                  </div>
+                )}
+                {farm.municipality && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">{tf("municipality")}</p>
+                    <p className="text-lg font-bold text-white/80">{farm.municipality}</p>
+                  </div>
+                )}
+                {farm.waterSource && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">{tf("water_source")}</p>
+                    <p className="text-lg font-bold text-white/80">{farm.waterSource}</p>
+                  </div>
+                )}
+                {farm.shadeTrees && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">{tf("shade_trees")}</p>
+                    <p className="text-lg font-bold text-white/80">{farm.shadeTrees}</p>
+                  </div>
+                )}
               </div>
 
               <div className="pt-8">
