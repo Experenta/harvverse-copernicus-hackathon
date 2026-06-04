@@ -1,0 +1,120 @@
+SHEYLA - Payloads listos para AI SDK / WhatsApp
+
+Base endpoint:
+POST /api/sentinel/agent/scenarios
+
+Headers si llamas desde fuera:
+Content-Type: application/json
+x-sentinel-agent-key: <SENTINEL_AGENT_API_KEY>
+
+Request ejemplo:
+{
+  "lotCode": "lotetest",
+  "scenario": "ndvi_drop_money",
+  "demoOverrides": {
+    "previousNdvi": 0.65,
+    "currentNdvi": 0.45
+  }
+}
+
+Scenarios disponibles:
+- lot_approved
+- eudr_blocked
+- water_stress
+- fungal_risk
+- ndvi_drop_money
+- roya_risk
+- explain_roya
+- flowering_positive
+
+Response importante que recibes:
+{
+  "ok": true,
+  "scenario": "ndvi_drop_money",
+  "signal": "S2_ndvi_drop",
+  "sourceMode": "demo_seeded",
+  "demoData": true,
+
+  "context": {
+    "lot": {
+      "id": 4,
+      "code": "lotetest",
+      "farmName": "Finca Test",
+      "region": "Intibuca",
+      "country": "Honduras",
+      "variety": "Pacamara",
+      "altitudeMasl": 1248,
+      "areaManzanas": 1.23
+    },
+    "farmer": {
+      "name": "Javier Puerto",
+      "phone": null
+    },
+    "snapshot": {
+      "sourceMode": "live",
+      "riskScore": 90,
+      "riskTier": "excellent",
+      "eudrStatus": "verified",
+      "eligibleForInvestment": true,
+      "scoreHash": "..."
+    },
+    "publicUrl": "http://localhost:3001/lot/lotetest",
+    "signals": {
+      "currentNdvi": 0.45,
+      "previousNdvi": 0.65,
+      "ndviDropPct": 30.8,
+      "annualRainfallMm": 2026.6,
+      "meanTemperatureC": 18.8,
+      "waterStress": "low",
+      "yieldRange": "14.0-21.0 qq",
+      "partnerReturnTotalUsd": null,
+      "partnerProfitUsd": null,
+      "farmerProfitUsd": 2737,
+      "metadataStatus": "written"
+    }
+  },
+
+  "knowledge": {
+    "title": "Caída de NDVI",
+    "threshold": "Caída significativa vs. línea base de 2 años.",
+    "meaning": "El cafetal perdió verdor o vigor, lo que suele indicar estrés.",
+    "impact": "Recalcula projected_qq con nuevo NDVI AUC y comunica el nuevo rango.",
+    "action": "Preguntar si hay hojas marchitas, manchas o daño en fruto.",
+    "guardrails": [
+      "No asumir causa solo por NDVI.",
+      "Si es octubre-diciembre, mencionar que la baja puede ser normal por post-cosecha."
+    ]
+  },
+
+  "message": {
+    "templateKey": "sentinel_ndvi_drop_money",
+    "title": "Caída de NDVI",
+    "body": "Mensaje listo en español para farmer/WhatsApp...",
+    "guardrails": [
+      "No asumir causa solo por NDVI."
+    ]
+  },
+
+  "whatsapp": {
+    "templateKey": "harvverse_sentinel_alert",
+    "variables": [
+      "Nombre farmer",
+      "Nombre finca",
+      "Código lote",
+      "Risk score",
+      "Yield range",
+      "URL pública QR",
+      "Mensaje completo"
+    ]
+  }
+}
+
+Para enviar WhatsApp:
+- Usar response.message.body como texto principal.
+- Usar response.whatsapp.variables si el proveedor requiere template variables.
+- Usar response.knowledge como grounding para AI SDK.
+- Usar response.context para datos del lote, score, YieldPredict y proof.
+
+Endpoints extra:
+GET /api/sentinel/agent/context?lotCode=lotetest
+GET /api/sentinel/agent/knowledge?signal=S2_ndvi_drop

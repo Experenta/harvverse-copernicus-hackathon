@@ -1,0 +1,81 @@
+{
+  "info": {
+    "name": "Sentinel Agent (Gupshup)",
+    "description": "Pruebas locales: `pnpm dev:api` en packages/sentinel-agent (puerto 3099).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3099" },
+    { "key": "agentKey", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/health"
+      }
+    },
+    {
+      "name": "Catálogo escenarios",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/scenarios"
+      }
+    },
+    {
+      "name": "Scenario demo (sin body — recomendado)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "x-sentinel-agent-key", "value": "{{agentKey}}" }],
+        "url": "{{baseUrl}}/api/scenarios?dryRun=1&fixture=ndvi"
+      }
+    },
+    {
+      "name": "Scenario inline (JSON en body)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-sentinel-agent-key", "value": "{{agentKey}}" }
+        ],
+        "body": {
+          "mode": "file",
+          "file": "../agent/ndvi-drop-money-inline.json"
+        },
+        "url": "{{baseUrl}}/api/scenarios?dryRun=1&inline=1"
+      }
+    },
+    {
+      "name": "Scenario proxy Harvverse",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-sentinel-agent-key", "value": "{{agentKey}}" }
+        ],
+        "body": {
+          "mode": "file",
+          "file": "../agent/scenario-request-ndvi.json"
+        },
+        "url": "{{baseUrl}}/api/scenarios?dryRun=1"
+      }
+    },
+    {
+      "name": "Context proxy",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-sentinel-agent-key", "value": "{{agentKey}}" }],
+        "url": "{{baseUrl}}/api/context?lotCode=lotetest"
+      }
+    },
+    {
+      "name": "Knowledge proxy",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "x-sentinel-agent-key", "value": "{{agentKey}}" }],
+        "url": "{{baseUrl}}/api/knowledge?signal=S2_ndvi_drop"
+      }
+    }
+  ]
+}

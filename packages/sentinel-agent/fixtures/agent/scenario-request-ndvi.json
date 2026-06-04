@@ -1,0 +1,8 @@
+{
+  "lotCode": "lotetest",
+  "scenario": "ndvi_drop_money",
+  "demoOverrides": {
+    "previousNdvi": 0.65,
+    "currentNdvi": 0.45
+  }
+}
