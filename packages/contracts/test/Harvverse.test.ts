@@ -51,8 +51,8 @@ describe("Harvverse — Finca Zafiro happy path", function () {
   const SCORE_VERSION = "sentinel-live-v0.2.0";
   const CARBON_HASH = ethers.keccak256(ethers.toUtf8Bytes("finca-zafiro-carbon-estimate-v1"));
   const CARBON_METHOD_VERSION = "carbon-screening-v0.1.0";
-  const TCO2E_PER_HA_YEAR_BPS = 787; // 7.87 tCO2e/ha/year
-  const TOTAL_TCO2E_PER_YEAR_BPS = 1377; // 13.77 tCO2e/year
+  const TCO2E_PER_HA_YEAR_HUNDREDTHS = 787; // 7.87 tCO2e/ha/year
+  const TOTAL_TCO2E_PER_YEAR_HUNDREDTHS = 1377; // 13.77 tCO2e/year
 
   before(async function () {
     [admin, farmer, partner] = await ethers.getSigners();
@@ -151,8 +151,8 @@ describe("Harvverse — Finca Zafiro happy path", function () {
           LOT_ID,
           SCORE_HASH,
           CARBON_HASH,
-          TCO2E_PER_HA_YEAR_BPS,
-          TOTAL_TCO2E_PER_YEAR_BPS,
+          TCO2E_PER_HA_YEAR_HUNDREDTHS,
+          TOTAL_TCO2E_PER_YEAR_HUNDREDTHS,
           0,
           CARBON_METHOD_VERSION,
           "ipfs://carbon-estimate/finca-zafiro-lot-1"
@@ -163,8 +163,8 @@ describe("Harvverse — Finca Zafiro happy path", function () {
         LOT_ID,
         SCORE_HASH,
         CARBON_HASH,
-        TCO2E_PER_HA_YEAR_BPS,
-        TOTAL_TCO2E_PER_YEAR_BPS,
+        TCO2E_PER_HA_YEAR_HUNDREDTHS,
+        TOTAL_TCO2E_PER_YEAR_HUNDREDTHS,
         0,
         CARBON_METHOD_VERSION,
         "ipfs://carbon-estimate/finca-zafiro-lot-1"
@@ -173,8 +173,8 @@ describe("Harvverse — Finca Zafiro happy path", function () {
     const estimate = await carbonRegistry.getCarbonEstimate(LOT_ID);
     expect(estimate.scoreHash).to.equal(SCORE_HASH);
     expect(estimate.carbonHash).to.equal(CARBON_HASH);
-    expect(estimate.tCo2ePerHaYearBps).to.equal(TCO2E_PER_HA_YEAR_BPS);
-    expect(estimate.totalTCo2ePerYearBps).to.equal(TOTAL_TCO2E_PER_YEAR_BPS);
+    expect(estimate.tCo2ePerHaYearHundredths).to.equal(TCO2E_PER_HA_YEAR_HUNDREDTHS);
+    expect(estimate.totalTCo2ePerYearHundredths).to.equal(TOTAL_TCO2E_PER_YEAR_HUNDREDTHS);
     expect(estimate.state).to.equal(0n);
     expect(estimate.methodVersion).to.equal(CARBON_METHOD_VERSION);
     expect(await carbonRegistry.hasCarbonEstimate(LOT_ID)).to.equal(true);
@@ -188,8 +188,8 @@ describe("Harvverse — Finca Zafiro happy path", function () {
           LOT_ID,
           SCORE_HASH,
           ethers.ZeroHash,
-          TCO2E_PER_HA_YEAR_BPS,
-          TOTAL_TCO2E_PER_YEAR_BPS,
+          TCO2E_PER_HA_YEAR_HUNDREDTHS,
+          TOTAL_TCO2E_PER_YEAR_HUNDREDTHS,
           0,
           CARBON_METHOD_VERSION,
           ""
@@ -204,7 +204,7 @@ describe("Harvverse — Finca Zafiro happy path", function () {
           SCORE_HASH,
           CARBON_HASH,
           0,
-          TOTAL_TCO2E_PER_YEAR_BPS,
+          TOTAL_TCO2E_PER_YEAR_HUNDREDTHS,
           0,
           CARBON_METHOD_VERSION,
           ""
@@ -218,8 +218,8 @@ describe("Harvverse — Finca Zafiro happy path", function () {
           LOT_ID,
           SCORE_HASH,
           CARBON_HASH,
-          TCO2E_PER_HA_YEAR_BPS,
-          TOTAL_TCO2E_PER_YEAR_BPS,
+          TCO2E_PER_HA_YEAR_HUNDREDTHS,
+          TOTAL_TCO2E_PER_YEAR_HUNDREDTHS,
           0,
           CARBON_METHOD_VERSION,
           ""
@@ -233,13 +233,13 @@ describe("Harvverse — Finca Zafiro happy path", function () {
           LOT_ID,
           SCORE_HASH,
           CARBON_HASH,
-          TCO2E_PER_HA_YEAR_BPS,
-          TOTAL_TCO2E_PER_YEAR_BPS,
+          TCO2E_PER_HA_YEAR_HUNDREDTHS,
+          TOTAL_TCO2E_PER_YEAR_HUNDREDTHS,
           99,
           CARBON_METHOD_VERSION,
           "ipfs://carbon-estimate/finca-zafiro-lot-1"
         )
-    ).to.be.reverted;
+    ).to.be.revertedWith("Invalid carbon state");
   });
 
   it("rejects invalid Copernicus score metadata", async function () {
