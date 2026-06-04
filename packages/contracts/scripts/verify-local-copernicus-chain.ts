@@ -97,7 +97,7 @@ function carbonCaptureFromSnapshot(snapshot: CopernicusSnapshot): ValidCarbonCap
   };
 }
 
-function toBasisPoints(value: number) {
+function toHundredths(value: number) {
   return Math.round(value * 100);
 }
 
@@ -156,15 +156,15 @@ async function main() {
     carbonCapture == null
       ? null
       : await (async () => {
-          const tCo2ePerHaYearBps = toBasisPoints(carbonCapture.tCo2ePerHaYear);
-          const totalTCo2ePerYearBps = toBasisPoints(carbonCapture.totalTCo2ePerYear);
+          const tCo2ePerHaYearHundredths = toHundredths(carbonCapture.tCo2ePerHaYear);
+          const totalTCo2ePerYearHundredths = toHundredths(carbonCapture.totalTCo2ePerYear);
           const methodVersion = carbonCapture.methodVersion ?? "carbon-screening-v0.1.0";
           const tx = await carbonRegistry.recordCarbonEstimate(
             lotId,
             scoreHash,
             carbonHash,
-            tCo2ePerHaYearBps,
-            totalTCo2ePerYearBps,
+            tCo2ePerHaYearHundredths,
+            totalTCo2ePerYearHundredths,
             0,
             methodVersion,
             `harvverse://copernicus/${lotCode}/carbon`,
@@ -175,13 +175,13 @@ async function main() {
             ok:
               stored.scoreHash.toLowerCase() === scoreHash.toLowerCase() &&
               stored.carbonHash.toLowerCase() === carbonHash.toLowerCase() &&
-              Number(stored.tCo2ePerHaYearBps) === tCo2ePerHaYearBps &&
-              Number(stored.totalTCo2ePerYearBps) === totalTCo2ePerYearBps,
+              Number(stored.tCo2ePerHaYearHundredths) === tCo2ePerHaYearHundredths &&
+              Number(stored.totalTCo2ePerYearHundredths) === totalTCo2ePerYearHundredths,
             transactionHash: receipt?.hash ?? tx.hash,
             contractAddress: carbonRegistryAddress,
             carbonHash,
-            tCo2ePerHaYearBps,
-            totalTCo2ePerYearBps,
+            tCo2ePerHaYearHundredths,
+            totalTCo2ePerYearHundredths,
             state: "estimate_recorded",
             methodVersion,
           };

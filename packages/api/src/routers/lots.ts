@@ -146,8 +146,8 @@ type LocalChainProofResult = {
     contractAddress: string;
     transactionHash: string;
     carbonHash: string;
-    tCo2ePerHaYearBps: number;
-    totalTCo2ePerYearBps: number;
+    tCo2ePerHaYearHundredths: number;
+    totalTCo2ePerYearHundredths: number;
     state: string;
     methodVersion: string;
   } | null;
@@ -193,8 +193,18 @@ function planToLotEconomics(plan: typeof plans.$inferSelect): LotPlanEconomics {
   };
 }
 
-function getFarmShadeTrees(lot: LotForCopernicus) {
-  return (lot as LotWithOptionalFarm).farm?.shadeTrees ?? null;
+async function getFarmShadeTrees(db: Db, lot: LotForCopernicus) {
+  const nestedShadeTrees = (lot as LotWithOptionalFarm).farm?.shadeTrees;
+  if (nestedShadeTrees != null) {
+    return nestedShadeTrees;
+  }
+
+  const farm = await db.query.farms.findFirst({
+    columns: { shadeTrees: true },
+    where: eq(farms.id, lot.farmId),
+  });
+
+  return farm?.shadeTrees ?? null;
 }
 
 async function getLotPlanEconomics(
@@ -240,7 +250,7 @@ async function buildCopernicusSnapshotForLot(
 ) {
   const lotWithEconomics = {
     ...lot,
-    shadeTrees: getFarmShadeTrees(lot),
+    shadeTrees: await getFarmShadeTrees(db, lot),
     ...(await getLotPlanEconomics(db, lot)),
   };
 

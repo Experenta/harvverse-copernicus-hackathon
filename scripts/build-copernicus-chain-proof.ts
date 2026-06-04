@@ -94,7 +94,7 @@ function carbonCaptureFromSnapshot(snapshot: Snapshot): ValidCarbonCapture | nul
   };
 }
 
-function toBasisPoints(value: number) {
+function toHundredths(value: number) {
   return Math.round(value * 100);
 }
 
@@ -171,8 +171,8 @@ const proof = {
             lotId,
             scoreHash,
             carbonHash,
-            tCo2ePerHaYearBps: toBasisPoints(carbonCapture.tCo2ePerHaYear),
-            totalTCo2ePerYearBps: toBasisPoints(carbonCapture.totalTCo2ePerYear),
+            tCo2ePerHaYearHundredths: toHundredths(carbonCapture.tCo2ePerHaYear),
+            totalTCo2ePerYearHundredths: toHundredths(carbonCapture.totalTCo2ePerYear),
             state: "estimate_recorded",
             methodVersion: carbonCapture.methodVersion ?? "carbon-screening-v0.1.0",
             evidenceUri: `harvverse://copernicus/${lotCode}/carbon`,
