@@ -43,7 +43,11 @@ import { queryClient, trpc } from "@/utils/trpc";
 
 const editLotSchema = z.object({
   // Section B — marketing
+  descriptiveName: z.string().optional(),
   variety: z.string().trim().max(100).optional(),
+  varietiesComposition: z.string().optional(),
+  process: z.string().optional(),
+  processingMethod: z.string().optional(),
   profile: z.string().trim().optional(),
   summary: z.string().trim().optional(),
   coverImageUrl: z.string().url().optional().or(z.literal("")),
@@ -51,9 +55,25 @@ const editLotSchema = z.object({
   // Section C — agronomic
   numTrees: z.coerce.number().int().min(0).optional(),
   plantAgeYears: z.coerce.number().int().min(0).optional(),
+  averagePlantAgeYears: z.coerce.number().int().min(0).optional(),
   areaManzanas: z.coerce.number().min(0).optional(),
   harvestYear: z.coerce.number().int().min(2000).max(2100).optional(),
   cycleNotes: z.string().trim().optional(),
+  renovationInProgress: z.boolean().optional(),
+  newVariety: z.string().optional(),
+  renovationPercent: z.coerce.number().min(0).max(100).optional(),
+  renovationStartYear: z.coerce.number().int().optional(),
+  managementType: z.string().optional(),
+  previousProductionQq: z.coerce.number().min(0).optional(),
+  productionDataYear: z.coerce.number().int().optional(),
+  rustLastCycle: z.string().optional(),
+  borerLastCycle: z.string().optional(),
+  fertilizedLastCycle: z.boolean().optional(),
+  availableForCoinvestment: z.boolean().optional(),
+  acceptsSplit6040: z.boolean().optional(),
+  minimumPriceCentsPerLb: z.coerce.number().int().min(0).optional(),
+  lotObservations: z.string().optional(),
+
   ticketUsd: z.coerce.number().positive().min(1000),
   pricePerLbUsd: z.coerce.number().positive(),
   priceFloorPerLbUsd: z.coerce.number().positive(),
@@ -65,6 +85,16 @@ const editLotSchema = z.object({
 
 type EditLotInput = z.input<typeof editLotSchema>;
 type EditLotValues = z.output<typeof editLotSchema>;
+
+function parseVarietiesComposition(value: string | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  try {
+    return JSON.parse(trimmed) as Record<string, unknown>;
+  } catch {
+    return { notes: trimmed };
+  }
+}
 
 const inputClasses = "bg-black/20 border-white/10 text-white placeholder:text-gray-600";
 
@@ -114,16 +144,35 @@ export default function FarmerLotEditPage() {
   const form = useForm<EditLotInput, unknown, EditLotValues>({
     resolver: zodResolver(editLotSchema),
     defaultValues: {
+      descriptiveName: "",
       variety: "",
+      varietiesComposition: "",
+      process: "",
+      processingMethod: "",
       profile: "",
       summary: "",
       coverImageUrl: "",
       scaScoreTenths: undefined,
       numTrees: undefined,
       plantAgeYears: undefined,
+      averagePlantAgeYears: undefined,
       areaManzanas: undefined,
       harvestYear: undefined,
       cycleNotes: "",
+      renovationInProgress: false,
+      newVariety: "",
+      renovationPercent: undefined,
+      renovationStartYear: undefined,
+      managementType: "",
+      previousProductionQq: undefined,
+      productionDataYear: undefined,
+      rustLastCycle: "",
+      borerLastCycle: "",
+      fertilizedLastCycle: false,
+      availableForCoinvestment: true,
+      acceptsSplit6040: true,
+      minimumPriceCentsPerLb: undefined,
+      lotObservations: "",
       ticketUsd: 3425,
       pricePerLbUsd: 3.5,
       priceFloorPerLbUsd: 2.5,
@@ -138,16 +187,35 @@ export default function FarmerLotEditPage() {
     if (!lot) return;
     const plan = lot.plans?.find((p) => p.status === "approved_for_demo") ?? lot.plans?.[0];
     form.reset({
+      descriptiveName: lot.descriptiveName ?? "",
       variety: lot.variety ?? "",
+      varietiesComposition: lot.varietiesComposition ? JSON.stringify(lot.varietiesComposition) : "",
+      process: lot.process ?? "",
+      processingMethod: lot.processingMethod ?? "",
       profile: lot.profile ?? "",
       summary: lot.summary ?? "",
       coverImageUrl: lot.coverImages?.[0] ?? "",
       scaScoreTenths: lot.scaScoreTenths ?? undefined,
       numTrees: lot.numTrees ?? undefined,
       plantAgeYears: lot.plantAgeYears ?? undefined,
+      averagePlantAgeYears: lot.averagePlantAgeYears ?? undefined,
       areaManzanas: lot.areaManzanas != null ? Number(lot.areaManzanas) : undefined,
       harvestYear: lot.harvestYear ?? undefined,
       cycleNotes: lot.cycleNotes ?? "",
+      renovationInProgress: lot.renovationInProgress ?? false,
+      newVariety: lot.newVariety ?? "",
+      renovationPercent: lot.renovationPercent != null ? Number(lot.renovationPercent) : undefined,
+      renovationStartYear: lot.renovationStartYear ?? undefined,
+      managementType: lot.managementType ?? "",
+      previousProductionQq: lot.previousProductionQq != null ? Number(lot.previousProductionQq) : undefined,
+      productionDataYear: lot.productionDataYear ?? undefined,
+      rustLastCycle: lot.rustLastCycle ?? "",
+      borerLastCycle: lot.borerLastCycle ?? "",
+      fertilizedLastCycle: lot.fertilizedLastCycle ?? false,
+      availableForCoinvestment: lot.availableForCoinvestment ?? true,
+      acceptsSplit6040: lot.acceptsSplit6040 ?? true,
+      minimumPriceCentsPerLb: lot.minimumPriceCentsPerLb ?? undefined,
+      lotObservations: lot.lotObservations ?? "",
       ticketUsd: plan ? plan.ticketCents / 100 : 3425,
       pricePerLbUsd: plan ? plan.priceCentsPerLb / 100 : 3.5,
       priceFloorPerLbUsd: plan?.priceFloorCentsPerLb != null ? plan.priceFloorCentsPerLb / 100 : 2.5,
@@ -215,16 +283,35 @@ export default function FarmerLotEditPage() {
   function onSubmit(values: EditLotValues) {
     updateLot.mutate({
       lotId,
+      descriptiveName: values.descriptiveName || undefined,
       variety: values.variety || undefined,
+      varietiesComposition: parseVarietiesComposition(values.varietiesComposition),
+      process: values.process || undefined,
+      processingMethod: values.processingMethod || undefined,
       profile: values.profile || undefined,
       summary: values.summary || undefined,
       coverImages: values.coverImageUrl ? [values.coverImageUrl] : [],
       scaScoreTenths: values.scaScoreTenths,
       numTrees: values.numTrees,
       plantAgeYears: values.plantAgeYears,
+      averagePlantAgeYears: values.averagePlantAgeYears,
       areaManzanas: values.areaManzanas,
       harvestYear: values.harvestYear,
       cycleNotes: values.cycleNotes || undefined,
+      renovationInProgress: values.renovationInProgress,
+      newVariety: values.newVariety || undefined,
+      renovationPercent: values.renovationPercent,
+      renovationStartYear: values.renovationStartYear,
+      managementType: values.managementType || undefined,
+      previousProductionQq: values.previousProductionQq,
+      productionDataYear: values.productionDataYear,
+      rustLastCycle: values.rustLastCycle || undefined,
+      borerLastCycle: values.borerLastCycle || undefined,
+      fertilizedLastCycle: values.fertilizedLastCycle,
+      availableForCoinvestment: values.availableForCoinvestment,
+      acceptsSplit6040: values.acceptsSplit6040,
+      minimumPriceCentsPerLb: values.minimumPriceCentsPerLb,
+      lotObservations: values.lotObservations || undefined,
     });
   }
 
@@ -350,6 +437,22 @@ export default function FarmerLotEditPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
+                      name="descriptiveName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-white/80">{t("descriptive_name")}</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., Lote de la Cascada" className={inputClasses} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
                       name="variety"
                       render={({ field }) => (
                         <FormItem>
@@ -373,6 +476,64 @@ export default function FarmerLotEditPage() {
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="varietiesComposition"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-white/80">{t("varieties_composition")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder='e.g., {"Bourbon": 60, "Catuai": 40}'
+                              className={inputClasses}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="process"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-white/80">{t("process")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., Washed"
+                              className={inputClasses}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="processingMethod"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-white/80">{t("processing_method")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="e.g., Solar dry bed"
+                              className={inputClasses}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="scaScoreTenths"
@@ -749,6 +910,318 @@ export default function FarmerLotEditPage() {
                   </FormItem>
                 )}
               />
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 space-y-4">
+                <div className="border-b border-white/10 pb-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">
+                    Renovation Status
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="renovationInProgress"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-white/10 p-4">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-white/80">
+                            {t("renovation_in_progress")}
+                          </FormLabel>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="newVariety"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("new_variety")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Parainema"
+                            className={inputClasses}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="renovationPercent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("renovation_percent")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="e.g., 20"
+                            className={inputClasses}
+                            {...field}
+                            value={(field.value as string | number | undefined) ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="renovationStartYear"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("renovation_start_year")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="e.g., 2022"
+                            className={inputClasses}
+                            {...field}
+                            value={(field.value as string | number | undefined) ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 space-y-4">
+                <div className="border-b border-white/10 pb-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">
+                    Management & Production
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="managementType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("management_type")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Organic, conventional"
+                            className={inputClasses}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="previousProductionQq"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("previous_production_qq")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            placeholder="e.g., 45.5"
+                            className={inputClasses}
+                            {...field}
+                            value={(field.value as string | number | undefined) ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="productionDataYear"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("production_data_year")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="e.g., 2023"
+                            className={inputClasses}
+                            {...field}
+                            value={(field.value as string | number | undefined) ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="rustLastCycle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("rust_last_cycle")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Low, 5%"
+                            className={inputClasses}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="borerLastCycle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-white/80">{t("borer_last_cycle")}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., None"
+                            className={inputClasses}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="fertilizedLastCycle"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-white/10 p-4">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-white/80">
+                          {t("fertilized_last_cycle")}
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 space-y-4">
+                <div className="border-b border-white/10 pb-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">
+                    Business & Investment
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="availableForCoinvestment"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-white/10 p-4">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-white/80">
+                            {t("available_for_coinvestment")}
+                          </FormLabel>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="acceptsSplit6040"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-white/10 p-4">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-white/80">
+                            {t("accepts_split_6040")}
+                          </FormLabel>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="minimumPriceCentsPerLb"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/80">{t("minimum_price_cents_per_lb")}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g., 250"
+                          className={inputClasses}
+                          {...field}
+                          value={(field.value as string | number | undefined) ?? ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lotObservations"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-white/80">{t("lot_observations")}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Additional notes about the lot..."
+                          className="bg-black/20 border-white/10 text-white placeholder:text-white/35 min-h-[80px] text-sm"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <Button
                 type="submit"

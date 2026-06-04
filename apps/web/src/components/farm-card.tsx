@@ -34,6 +34,7 @@ interface Farm {
   id: number;
   name: string;
   region: string;
+  department?: string | null;
   country: string;
   altitudeMasl?: number | null;
   areaManzanas?: string | null;
@@ -176,7 +177,9 @@ export function FarmCard({ farm }: FarmCardProps) {
           <div className="mb-3 md:mb-5 flex flex-col gap-1 md:gap-1.5 text-[10px] md:text-sm text-white/70">
             <span className="flex items-center gap-1.5 md:gap-2">
               <MapPin className="size-3 md:size-3.5 text-primary/60 shrink-0" />
-              <span className="truncate">{farm.region}, {farm.country}</span>
+              <span className="truncate">
+                {farm.region}, {farm.department ? `${farm.department}, ` : ""}{farm.country}
+              </span>
             </span>
             <div className="flex items-center gap-3 md:gap-5">
               {farm.altitudeMasl && (

@@ -247,6 +247,10 @@ export default function FarmerFarmDetailPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{t("farm_code")}</p>
+                <p className="mt-1 text-sm font-bold text-white">{farm.farmCode || "—"}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{t("varieties")}</p>
                 <p className="mt-1 text-sm font-bold text-white">{farm.varieties?.join(", ") || "—"}</p>
               </div>
@@ -261,6 +265,34 @@ export default function FarmerFarmDetailPage() {
               <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{t("altitude")}</p>
                 <p className="mt-1 text-sm font-bold text-primary">{farm.altitudeMasl ? `${farm.altitudeMasl} m` : "—"}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{t("department")}</p>
+                <p className="mt-1 text-sm font-bold text-white">{farm.department || "—"}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{t("municipality")}</p>
+                <p className="mt-1 text-sm font-bold text-white">{farm.municipality || "—"}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{t("water_source")}</p>
+                <p className="mt-1 text-sm font-bold text-white">{farm.waterSource || "—"}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{t("road_access")}</p>
+                <p className="mt-1 text-sm font-bold text-white">{farm.roadAccess || "—"}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{t("shade_trees")}</p>
+                <p className="mt-1 text-sm font-bold text-white">{farm.shadeTrees || "—"}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{t("previous_total_production_qq")}</p>
+                <p className="mt-1 text-sm font-bold text-white">{farm.previousTotalProductionQq ? `${farm.previousTotalProductionQq} qq` : "—"}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/40">{t("production_data_year")}</p>
+                <p className="mt-1 text-sm font-bold text-white">{farm.productionDataYear || "—"}</p>
               </div>
             </div>
             {farm.description ? (
