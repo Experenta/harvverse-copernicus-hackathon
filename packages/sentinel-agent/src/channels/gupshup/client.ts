@@ -4,8 +4,10 @@ import type {
   GupshupSendTemplateResult,
 } from "./types.js";
 
-export const GUPSHUP_TEMPLATE_MSG_URL =
-  "https://api.gupshup.io/wa/api/v1/template/msg";
+/** Partner API — base partner.gupshup.io, el appId va en la ruta */
+export function gupshupPartnerUrl(appId: string): string {
+  return `https://partner.gupshup.io/partner/app/${appId}/template/msg`;
+}
 
 function normalizePhoneE164(phone: string): string {
   return phone.replace(/\s+/g, "").replace(/^00/, "+");
@@ -16,24 +18,45 @@ export function buildGupshupRequestPreview(
   templateId: string,
   params: string[],
 ): GupshupSendTemplateResult["requestPreview"] {
+  const appId = agentEnv.GUPSHUP_APP_ID ?? "(set GUPSHUP_APP_ID)";
+  const url = gupshupPartnerUrl(appId);
   const to = normalizePhoneE164(destination).replace(/^\+/, "");
   const templatePayload = JSON.stringify({
     id: templateId || "(pending)",
-    params,
+    params: params.map(sanitizeParam),
   });
 
   return {
-    url: GUPSHUP_TEMPLATE_MSG_URL,
+    url,
     method: "POST",
     contentType: "application/x-www-form-urlencoded",
     form: {
-      channel: "whatsapp",
       source: agentEnv.GUPSHUP_SOURCE ?? "(set GUPSHUP_SOURCE)",
       destination: to,
-      "src.name": agentEnv.GUPSHUP_APP_NAME ?? "(set GUPSHUP_APP_NAME)",
+      "src.name": agentEnv.GUPSHUP_APP_NAME ?? "Harvverse",
       template: templatePayload,
     },
   };
+}
+
+/**
+ * WhatsApp rechaza params con \n, \t o más de 4 espacios consecutivos (error 132018).
+ * Reemplaza saltos de línea/tabs por espacio y colapsa espacios excesivos.
+ */
+function sanitizeParam(value: string): string {
+  return value
+    .replace(/\r\n|\r|\n|\t/g, " ")
+    .replace(/ {5,}/g, "    ")
+    .trim();
+}
+
+/** Devuelve el token que va en el header Authorization (Partner Token tiene prioridad) */
+function resolveAuthToken(): string {
+  return (
+    agentEnv.GUPSHUP_PARTNER_TOKEN ??
+    agentEnv.GUPSHUP_APP_TOKEN ??
+    "(set GUPSHUP_PARTNER_TOKEN)"
+  );
 }
 
 export async function sendGupshupTemplate(
@@ -67,27 +90,38 @@ export async function sendGupshupTemplate(
       requestPreview,
       error: input.templateId
         ? null
-        : "Template ID pendiente (GUPSHUP_TEMPLATE_HARVVERSE_SENTINEL_ALERT)",
+        : "Template ID pendiente (GUPSHUP_TEMPLATE_HARVVERSE_SENTINEL_ALERT_V2)",
     };
   }
 
   const body = new URLSearchParams(requestPreview.form);
 
   try {
-    const response = await fetch(GUPSHUP_TEMPLATE_MSG_URL, {
+    const response = await fetch(requestPreview.url, {
       method: "POST",
       headers: {
-        apikey: agentEnv.GUPSHUP_API_KEY!,
+        Authorization: resolveAuthToken(),
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: body.toString(),
     });
 
-    const payload = (await response.json()) as {
-      messageId?: string;
-      status?: string;
-      message?: string;
-    };
+    const rawText = await response.text();
+    let payload: { messageId?: string; status?: string; message?: string } = {};
+    try {
+      payload = JSON.parse(rawText);
+    } catch {
+      return {
+        ok: false,
+        dryRun: false,
+        messageId: null,
+        destination,
+        templateId: input.templateId,
+        params: input.params,
+        requestPreview,
+        error: `HTTP ${response.status} — respuesta no-JSON: ${rawText.slice(0, 300)}`,
+      };
+    }
 
     if (!response.ok) {
       return {
