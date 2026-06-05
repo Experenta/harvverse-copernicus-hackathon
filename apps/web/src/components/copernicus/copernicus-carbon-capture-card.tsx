@@ -233,12 +233,11 @@ function CarbonCreditSimulation({
           <div className="grid size-24 place-items-center rounded-full border border-fuchsia-100/50 bg-white/10 shadow-[0_0_42px_rgba(168,85,247,0.35)]">
             <div className="grid size-16 place-items-center rounded-full border border-fuchsia-50/70 bg-black/25 text-center">
               <img
-                src="/logo-square.png"
+                src="/figma/landing-harv-icon-1.png"
                 alt=""
                 aria-hidden="true"
-                className="mx-auto size-6 object-contain"
+                className="mx-auto size-10 object-contain"
               />
-              <p className="mt-1 text-xl font-black text-white">HC</p>
             </div>
           </div>
           <p className="max-w-[150px] text-center text-[10px] font-black uppercase tracking-[0.18em] text-fuchsia-50/80">
