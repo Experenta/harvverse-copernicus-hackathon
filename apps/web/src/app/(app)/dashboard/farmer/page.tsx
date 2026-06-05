@@ -161,73 +161,69 @@ export default function FarmerDashboardPage() {
             className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 md:gap-4"
           >
             <motion.div variants={item}>
-              <GlassCard className="border-primary/20 bg-white/[0.03] p-4 md:p-6 flex items-center md:flex-col md:text-center group hover:border-primary/40 transition-colors h-full gap-4 md:gap-0">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg md:rounded-xl flex items-center justify-center md:mb-4 group-hover:scale-110 transition-transform shrink-0">
-                  <Sprout className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              <GlassCard className="flex h-full items-center gap-3 border-primary/20 bg-white/[0.03] p-4 text-left transition-colors hover:border-primary/40">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition-transform group-hover:scale-110">
+                  <Sprout className="h-5 w-5 text-primary" />
                 </div>
-                <div className="flex flex-col md:items-center flex-1">
-                  <p className="stat-label mb-0.5 md:mb-1 text-[10px] md:text-xs text-left md:text-center">{t("my_farms")}</p>
-                  <p className="stat-value text-2xl md:text-3xl text-left md:text-center leading-none">{farmsToShow.length}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="stat-label mb-0.5 text-left text-[10px]">{t("my_farms")}</p>
+                  <p className="stat-value text-left text-2xl leading-none">{farmsToShow.length}</p>
                 </div>
               </GlassCard>
             </motion.div>
 
             <motion.div variants={item}>
               <GlassCard
-                className="group h-full cursor-pointer border-fuchsia-300/20 bg-purple-950/25 p-4 transition-colors hover:border-fuchsia-200/40 md:flex md:flex-col md:items-center md:p-6 md:text-center"
+                className="group flex h-full cursor-pointer items-center gap-3 border-fuchsia-300/20 bg-purple-950/25 p-4 text-left transition-colors hover:border-fuchsia-200/40"
                 onClick={() => router.push("/dashboard/farmer/carbon-credits")}
               >
-                <div className="flex items-center gap-4 md:flex-col md:gap-0">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-fuchsia-300/10 transition-transform group-hover:scale-110 md:mb-4 md:h-12 md:w-12 md:rounded-xl">
-                    <Coins className="h-5 w-5 text-fuchsia-200 md:h-6 md:w-6" />
-                  </div>
-                  <div className="min-w-0 flex-1 md:flex md:flex-col md:items-center">
-                    <p className="stat-label mb-0.5 text-left text-[10px] md:mb-1 md:text-center md:text-xs">
-                      {t("hc_balance")}
-                    </p>
-                    <p className="stat-value truncate text-left text-2xl leading-none text-fuchsia-100 md:text-center md:text-3xl">
-                      {formatCarbon(carbonPortfolio.hcBalance)}
-                    </p>
-                    <p className="mt-1 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-fuchsia-100/45 md:text-center">
-                      HC
-                    </p>
-                  </div>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-fuchsia-300/10 transition-transform group-hover:scale-110">
+                  <Coins className="h-5 w-5 text-fuchsia-200" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="stat-label mb-0.5 text-left text-[10px]">{t("hc_balance")}</p>
+                  <p className="stat-value truncate text-left text-2xl leading-none text-fuchsia-100">
+                    {formatCarbon(carbonPortfolio.hcBalance)}
+                  </p>
+                  <p className="mt-0.5 text-left text-[9px] font-semibold uppercase tracking-[0.12em] text-fuchsia-100/45">
+                    HC
+                  </p>
                 </div>
               </GlassCard>
             </motion.div>
 
             <motion.div variants={item}>
-              <GlassCard className="border-primary/20 bg-white/[0.03] p-4 md:p-6 flex items-center md:flex-col md:text-center group hover:border-primary/40 transition-colors h-full gap-4 md:gap-0">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg md:rounded-xl flex items-center justify-center md:mb-4 group-hover:scale-110 transition-transform shrink-0">
-                  <Leaf className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              <GlassCard className="flex h-full items-center gap-3 border-primary/20 bg-white/[0.03] p-4 text-left transition-colors hover:border-primary/40">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition-transform group-hover:scale-110">
+                  <Leaf className="h-5 w-5 text-primary" />
                 </div>
-                <div className="flex flex-col md:items-center flex-1">
-                  <p className="stat-label mb-0.5 md:mb-1 text-[10px] md:text-xs text-left md:text-center">{t("available_lots")}</p>
-                  <p className="stat-value text-2xl md:text-3xl text-left md:text-center leading-none">{availableLotsCount}</p>
-                </div>
-              </GlassCard>
-            </motion.div>
-
-            <motion.div variants={item}>
-              <GlassCard className="border-primary/20 bg-white/[0.03] p-4 md:p-6 flex items-center md:flex-col md:text-center group hover:border-primary/40 transition-colors h-full gap-4 md:gap-0">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg md:rounded-xl flex items-center justify-center md:mb-4 group-hover:scale-110 transition-transform shrink-0">
-                  <FileText className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-                </div>
-                <div className="flex flex-col md:items-center flex-1">
-                  <p className="stat-label mb-0.5 md:mb-1 text-[10px] md:text-xs text-left md:text-center">{t("view_all_lots")}</p>
-                  <p className="stat-value text-2xl md:text-3xl text-left md:text-center leading-none">{lotsCount}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="stat-label mb-0.5 text-left text-[10px]">{t("available_lots")}</p>
+                  <p className="stat-value text-left text-2xl leading-none">{availableLotsCount}</p>
                 </div>
               </GlassCard>
             </motion.div>
 
             <motion.div variants={item}>
-              <GlassCard className="border-primary/20 bg-white/[0.03] p-4 md:p-6 flex items-center md:flex-col md:text-center group hover:border-primary/40 transition-colors h-full gap-4 md:gap-0">
-                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-lg md:rounded-xl flex items-center justify-center md:mb-4 group-hover:scale-110 transition-transform shrink-0">
-                  <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              <GlassCard className="flex h-full items-center gap-3 border-primary/20 bg-white/[0.03] p-4 text-left transition-colors hover:border-primary/40">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition-transform group-hover:scale-110">
+                  <FileText className="h-5 w-5 text-primary" />
                 </div>
-                <div className="flex flex-col md:items-center flex-1">
-                  <p className="stat-label mb-0.5 md:mb-1 text-[10px] md:text-xs text-left md:text-center">{tf("verified")}</p>
-                  <p className="stat-value text-2xl md:text-3xl text-left md:text-center leading-none">{verifiedFarmsCount}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="stat-label mb-0.5 text-left text-[10px]">{t("view_all_lots")}</p>
+                  <p className="stat-value text-left text-2xl leading-none">{lotsCount}</p>
+                </div>
+              </GlassCard>
+            </motion.div>
+
+            <motion.div variants={item}>
+              <GlassCard className="flex h-full items-center gap-3 border-primary/20 bg-white/[0.03] p-4 text-left transition-colors hover:border-primary/40">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition-transform group-hover:scale-110">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="stat-label mb-0.5 text-left text-[10px]">{tf("verified")}</p>
+                  <p className="stat-value text-left text-2xl leading-none">{verifiedFarmsCount}</p>
                 </div>
               </GlassCard>
             </motion.div>

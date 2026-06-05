@@ -199,17 +199,16 @@ export default function FarmerLotDetailPage() {
 
           {parsedCopernicusSnapshot ? (
             <div className="space-y-5">
-              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-                <CopernicusRiskScoreCard snapshot={parsedCopernicusSnapshot} />
+              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+                <div className="flex flex-col gap-4">
+                  <CopernicusRiskScoreCard snapshot={parsedCopernicusSnapshot} />
+                  <CopernicusSignalsGrid snapshot={parsedCopernicusSnapshot} />
+                </div>
                 <div className="flex flex-col gap-4">
                   <CopernicusYieldPredictCard snapshot={parsedCopernicusSnapshot} />
                   <CopernicusProofCard snapshot={parsedCopernicusSnapshot} />
+                  <CopernicusCarbonCaptureCard snapshot={parsedCopernicusSnapshot} interactive />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
-                <CopernicusSignalsGrid snapshot={parsedCopernicusSnapshot} />
-                <CopernicusCarbonCaptureCard snapshot={parsedCopernicusSnapshot} interactive />
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row">
