@@ -73,7 +73,7 @@ export function CopernicusMetric({
   }[scale?.tone ?? "good"];
 
   return (
-    <div className="rounded-xl border border-white/10 bg-transparent p-3 transition-colors hover:border-primary/25 hover:bg-primary/[0.03]">
+    <div className="rounded-xl border border-white/10 bg-transparent p-2.5 transition-colors hover:border-primary/25 hover:bg-primary/[0.03]">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5 overflow-hidden text-white/30">
           {Icon ? <Icon className="size-3.5 shrink-0 text-primary/60" /> : null}
@@ -88,15 +88,15 @@ export function CopernicusMetric({
           </Tooltip>
         ) : null}
       </div>
-      <p className={`mt-2 font-black text-white ${size === "sm" ? "text-base" : "text-xl"}`}>{value}</p>
+      <p className={`mt-1.5 font-black text-white ${size === "sm" ? "text-base" : "text-lg"}`}>{value}</p>
       {scale ? (
-        <div className="mt-3">
+        <div className="mt-2">
           <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
             {pct != null ? (
               <div className={`h-full rounded-full ${toneClass}`} style={{ width: `${pct}%` }} />
             ) : null}
           </div>
-          <div className="mt-1 flex items-center justify-between gap-2 text-[9px] font-bold uppercase tracking-wider text-white/25">
+          <div className="mt-0.5 flex items-center justify-between gap-2 text-[8px] font-bold uppercase tracking-wider text-white/25">
             <span>{scale.min}</span>
             {scale.label ? <span className="truncate text-primary/80">{scale.label}</span> : null}
             <span>{scale.max}</span>

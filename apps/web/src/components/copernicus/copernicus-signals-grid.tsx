@@ -74,12 +74,12 @@ export function CopernicusSignalsGrid({ snapshot }: { snapshot: CopernicusSnapsh
             : { label: "very high", tone: "moderate" as const };
 
   return (
-    <GlassCard className="border-primary/20 bg-[#001020]/40 p-6">
+    <GlassCard className="border-primary/20 bg-[#001020]/40 p-4">
       <CopernicusSectionHeader
         title={t("satellite_signals")}
         description={t("section_help.satellite_signals")}
       />
-      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
         <CopernicusMetric
           icon={Leaf}
           label={t("metrics.s2_ndvi")}

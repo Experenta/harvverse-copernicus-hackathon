@@ -19,15 +19,15 @@ export function CopernicusRiskScoreCard({
   const tc = useTranslations("copernicus");
 
   return (
-    <GlassCard className={`border-primary/20 bg-[#001020]/40 ${compact ? "p-4" : "p-5"}`}>
+    <GlassCard className={`border-primary/20 bg-[#001020]/40 ${compact ? "p-4" : "p-4"}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <CopernicusSectionHeader
             title={t("risk_score")}
             description={t("section_help.risk_score")}
           />
-          <div className="mt-3 flex items-end gap-2">
-            <span className={`font-black text-white ${compact ? "text-4xl" : "text-5xl"}`}>
+          <div className="mt-2 flex items-end gap-2">
+            <span className={`font-black text-white ${compact ? "text-4xl" : "text-4xl"}`}>
               {snapshot.riskScore ?? "--"}
             </span>
             <span className="pb-1 text-lg font-bold text-white/30">/100</span>
@@ -41,25 +41,25 @@ export function CopernicusRiskScoreCard({
       </div>
       {!compact ? (
         <>
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2">
             <BadgeCheck className="size-4 text-primary" />
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
               {tc("seven_variables")}
             </p>
           </div>
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {snapshot.variables.map((variable) => (
               <div
                 key={variable.key}
-                className="rounded-lg border border-white/10 bg-transparent p-2.5"
+                className="rounded-lg border border-white/10 bg-transparent p-2"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-xs font-bold text-white">
+                  <p className="text-[11px] font-bold leading-snug text-white">
                     {t(`variables.${variable.key}` as "variables.sentinel2_current_ndvi")}
                   </p>
                   <p className="text-sm font-black text-primary">{variable.score}</p>
                 </div>
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10">
                   <div
                     className="h-full rounded-full bg-primary"
                     style={{ width: `${variable.score}%` }}

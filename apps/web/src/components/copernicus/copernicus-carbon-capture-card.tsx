@@ -202,15 +202,15 @@ function CarbonCreditSimulation({
       >
         <RefreshCw className="size-3.5" />
       </Button>
-      <div className="grid min-w-0 gap-0 2xl:grid-cols-[170px_minmax(0,1fr)]">
-        <div className="flex flex-col items-center justify-center gap-3 border-b border-fuchsia-300/10 bg-[radial-gradient(circle_at_35%_25%,rgba(216,180,254,0.95),rgba(147,51,234,0.7)_44%,rgba(49,46,129,0.55)_80%)] p-4 2xl:border-b-0 2xl:border-r">
-          <div className="grid size-24 place-items-center rounded-full border border-fuchsia-100/50 bg-white/10 shadow-[0_0_42px_rgba(168,85,247,0.35)]">
-            <div className="grid size-16 place-items-center rounded-full border border-fuchsia-50/70 bg-black/25 text-center">
+      <div className="grid min-w-0 gap-0 xl:grid-cols-[150px_minmax(0,1fr)]">
+        <div className="flex flex-col items-center justify-center gap-3 border-b border-fuchsia-300/10 bg-[radial-gradient(circle_at_35%_25%,rgba(216,180,254,0.95),rgba(147,51,234,0.7)_44%,rgba(49,46,129,0.55)_80%)] p-4 xl:border-b-0 xl:border-r">
+          <div className="grid size-20 place-items-center rounded-full border border-fuchsia-100/50 bg-white/10 shadow-[0_0_42px_rgba(168,85,247,0.35)]">
+            <div className="grid size-14 place-items-center rounded-full border border-fuchsia-50/70 bg-black/25 text-center">
               <img
                 src="/figma/landing-harv-icon-1.png"
                 alt=""
                 aria-hidden="true"
-                className="mx-auto size-10 object-contain"
+                className="mx-auto size-9 object-contain"
               />
             </div>
           </div>
@@ -219,42 +219,54 @@ function CarbonCreditSimulation({
           </p>
         </div>
 
-        <div className="min-w-0 p-4">
-          <div className="grid min-w-0 gap-3 md:grid-cols-3">
-            <CopernicusMetric
-              label="available credit"
-              value={`${formatCarbon(ledger.availableTCo2e)} HC`}
-              description="Local POC balance available to convert from the current carbon estimate."
-              size="sm"
-            />
-            <CopernicusMetric
-              label="HC balance"
-              value={`${formatCarbon(ledger.hcBalance)} HC`}
-              description="Browser-local token balance for showing how carbon income could accrue over repeated measurement cycles."
-              size="sm"
-            />
-            <CopernicusMetric
-              label="last token"
-              value={ledger.lastTokenId ?? "--"}
-              description="Local token receipt generated from the carbon evidence hash and score hash."
-              size="sm"
-            />
+        <div className="min-w-0 p-4 pr-12">
+          <div className="grid min-w-0 grid-cols-2 gap-2">
+            <div className="rounded-xl border border-fuchsia-200/15 bg-black/10 p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-fuchsia-50/45">
+                Available
+              </p>
+              <p className="mt-1 text-2xl font-black leading-none text-fuchsia-50">
+                {formatCarbon(ledger.availableTCo2e)}
+              </p>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-fuchsia-100/50">
+                HC
+              </p>
+            </div>
+            <div className="rounded-xl border border-fuchsia-200/15 bg-black/10 p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-fuchsia-50/45">
+                Balance
+              </p>
+              <p className="mt-1 text-2xl font-black leading-none text-fuchsia-50">
+                {formatCarbon(ledger.hcBalance)}
+              </p>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-fuchsia-100/50">
+                HC
+              </p>
+            </div>
+            <div className="col-span-2 rounded-xl border border-fuchsia-200/15 bg-black/10 p-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-fuchsia-50/45">
+                Last token
+              </p>
+              <p className="mt-1 truncate font-mono text-sm font-black text-fuchsia-50">
+                {ledger.lastTokenId ?? "--"}
+              </p>
+            </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-3">
             <Button
               type="button"
               onClick={issueCarbonToken}
               disabled={!canIssue}
-              className="h-auto min-h-10 min-w-0 rounded-xl border-emerald-300/25 bg-emerald-300 px-3 py-2 text-center text-emerald-950 whitespace-normal hover:bg-emerald-200"
+              className="h-auto min-h-9 min-w-0 rounded-xl border-emerald-300/25 bg-emerald-300 px-3 py-2 text-center text-sm font-black text-emerald-950 whitespace-normal hover:bg-emerald-200"
             >
               <ArrowRightLeft className="size-4" />
               Issue HC
             </Button>
           </div>
 
-          <div className="mt-3 grid min-w-0 gap-2 text-[11px] leading-relaxed text-white/45 xl:grid-cols-2">
-            <p>
+          <div className="mt-3 space-y-1 text-[11px] leading-relaxed text-white/45">
+            <p className="truncate">
               Last issuance: <span className="font-semibold text-white/70">{lastIssuedAt}</span>
             </p>
             <p>1 HC represents 1 tCO2e unit in this POC ledger.</p>
