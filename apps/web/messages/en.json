@@ -33,6 +33,7 @@
     "my_proposals": "My Proposals",
     "investments": "Investments",
     "proposals": "Proposals",
+    "carbon_credits": "Carbon Credits",
     "demo_alerts": "Demo Alerts",
     "sign_out": "Sign Out",
     "signing_out": "Signing out...",
@@ -476,6 +477,8 @@
     "my_farms": "My Farms",
     "view_all_farms": "View all farms",
     "available_lots": "Available Lots",
+    "hc_balance": "HC Balance",
+    "view_carbon_credits": "View carbon credits",
     "view_all_lots": "View all lots",
     "my_proposals": "My Proposals",
     "no_farms_yet": "You haven't registered any farms yet.",
@@ -505,6 +508,25 @@
     "plan_ready": "Plan ready",
     "back_to_dashboard": "Back to Dashboard",
     "failed_load": "Failed to load lots. Please refresh and try again."
+  },
+  "carbon_credits": {
+    "title": "Carbon Credits",
+    "subtitle": "Track the lot-level carbon estimates and HC units generated from the carbon evidence on each Copernicus snapshot.",
+    "back_dashboard": "Back to dashboard",
+    "failed": "Failed to load carbon credits. Please refresh and try again.",
+    "hc_balance": "HC balance",
+    "available": "Available credit",
+    "tracked_lots": "Tracked lots",
+    "empty_title": "No carbon estimates yet",
+    "empty_body": "Run Copernicus analysis on a lot first. When the snapshot includes carbon capture, it will appear here.",
+    "tokens": "tokens",
+    "issued": "Issued HC",
+    "last_token": "Last token",
+    "last_issued": "Last issued",
+    "carbon_hash": "Carbon hash",
+    "transaction": "Transaction",
+    "manage_lot": "Manage lot",
+    "note": "Conversion is controlled from the lot detail, where the carbon estimate and blockchain evidence can be reviewed together."
   },
   "investments": {
     "my_title": "My Investments",
@@ -882,13 +904,13 @@
       "polygon_terrain_suitability": "Polygon altitude and area suitability"
     },
     "metrics": {
-      "s2_ndvi": "Sentinel-2 NDVI",
-      "s2_ndre": "Sentinel-2 NDRE",
-      "s2_ndwi": "Sentinel-2 NDWI",
-      "s1_sar": "Sentinel-1 SAR",
-      "s1_vh_vv_rvi": "S1 VH/VV · RVI",
-      "era5_rainfall": "ERA5 Rainfall",
-      "dem_altitude": "DEM Altitude"
+      "s2_ndvi": "Canopy vigor",
+      "s2_ndre": "Chlorophyll signal",
+      "s2_ndwi": "Water stress",
+      "s1_sar": "Radar structure",
+      "s1_vh_vv_rvi": "Radar canopy index",
+      "era5_rainfall": "Annual rainfall",
+      "dem_altitude": "Elevation"
     },
     "section_help": {
       "risk_score": "One 0-100 financing risk score assembled from satellite, climate, terrain, and EUDR evidence.",

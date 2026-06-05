@@ -116,7 +116,7 @@ export default function FarmerLotDetailPage() {
   const localProofWritten = chainProof.metadataStatus === "written";
 
   return (
-    <div className="mx-auto max-w-7xl px-4 md:px-0 text-[#EEEEEE]">
+    <div className="mx-auto max-w-6xl px-4 md:px-0 text-[#EEEEEE]">
       <Button
         variant="ghost"
         className="mb-6 text-white/70 hover:bg-white/5 hover:text-white px-0 md:px-4"
@@ -148,37 +148,39 @@ export default function FarmerLotDetailPage() {
       </div>
 
       <div className="flex flex-col gap-6">
-        <GlassCard className="overflow-hidden border-primary/20 bg-[#001020]/40">
-          <div className="flex flex-col">
-            <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-5 py-4 sm:px-6">
-              <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider">
-                {t("lot_boundary")}
-              </h2>
-              <Badge className="rounded-full bg-emerald-500/20 text-emerald-400 border-emerald-500/30 uppercase">
-                {t(`status_${lot.status}` as any)}
-              </Badge>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <GlassCard className="overflow-hidden border-primary/20 bg-[#001020]/40">
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between border-b border-white/10 bg-transparent px-5 py-4 sm:px-6">
+                <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider">
+                  {t("lot_boundary")}
+                </h2>
+                <Badge className="rounded-full bg-emerald-500/20 text-emerald-400 border-emerald-500/30 uppercase">
+                  {t(`status_${lot.status}` as any)}
+                </Badge>
+              </div>
+              <div className="h-[280px] bg-black/20 sm:h-[340px]">
+                {lot.polygon ? (
+                  <PolygonDisplayMap
+                    polygon={lot.polygon as Polygon}
+                    color="#93D832"
+                    contextPolygon={farmBoundaryForLotMap(
+                      lot.farm?.polygon,
+                      lot.polygon as Polygon,
+                    ) ?? undefined}
+                    contextColor="#4a9eff"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-white/30 italic">
+                    {t("polygon_fallback")}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="h-[280px] bg-black/20 sm:h-[360px]">
-              {lot.polygon ? (
-                <PolygonDisplayMap
-                  polygon={lot.polygon as Polygon}
-                  color="#93D832"
-                  contextPolygon={farmBoundaryForLotMap(
-                    lot.farm?.polygon,
-                    lot.polygon as Polygon,
-                  ) ?? undefined}
-                  contextColor="#4a9eff"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-white/30 italic">
-                  {t("polygon_fallback")}
-                </div>
-              )}
-            </div>
-          </div>
-        </GlassCard>
+          </GlassCard>
 
-        <CopernicusFarmerStatusCard lot={lot} snapshotRaw={copernicusSnapshot} />
+          <CopernicusFarmerStatusCard lot={lot} snapshotRaw={copernicusSnapshot} />
+        </div>
 
         <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8">
           <div className="mb-6 flex items-start justify-between gap-3">

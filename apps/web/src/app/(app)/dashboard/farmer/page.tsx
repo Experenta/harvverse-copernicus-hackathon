@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { AlertCircle, ArrowRight, CheckCircle2, FileText, Leaf, Plus, Sprout } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle2, Coins, FileText, Leaf, Plus, Sprout } from "lucide-react";
 
 import { GlassCard } from "@harvverse-copernicus-hackathon/ui/components/glass-card";
 import { Button } from "@harvverse-copernicus-hackathon/ui/components/button";
@@ -12,6 +12,8 @@ import { Skeleton } from "@harvverse-copernicus-hackathon/ui/components/skeleton
 import { useCurrentUser } from "@/hooks/use-auth";
 import { trpc } from "@/utils/trpc";
 import { FarmCard } from "@/components/farm-card";
+import { formatCarbon } from "@/lib/carbon-ledger";
+import { buildCarbonCreditPortfolio } from "@/lib/carbon-portfolio";
 
 import { motion } from "framer-motion";
 
@@ -35,6 +37,7 @@ export default function FarmerDashboardPage() {
   const router = useRouter();
   const t = useTranslations("dashboard");
   const tf = useTranslations("farm");
+  const [ledgerRefresh, setLedgerRefresh] = useState(0);
 
   const {
     data: farms,
@@ -49,6 +52,17 @@ export default function FarmerDashboardPage() {
 
   const isLoading = userLoading || farmsLoading;
   const farmsToShow = farms ?? [];
+  useEffect(() => {
+    if (!farmsLoading) setLedgerRefresh(Date.now());
+  }, [farmsLoading, farms]);
+
+  const carbonPortfolio = useMemo(
+    () =>
+      buildCarbonCreditPortfolio(farmsToShow, (storageKey) =>
+        typeof window === "undefined" ? null : window.localStorage.getItem(storageKey),
+      ),
+    [farmsToShow, ledgerRefresh],
+  );
   const firstName = user?.displayName?.split(" ")[0] ?? "";
   const verifiedFarmsCount = farmsToShow.filter((farm) => farm.verified).length;
   const lotsCount = farmsToShow.reduce(
@@ -144,7 +158,7 @@ export default function FarmerDashboardPage() {
             variants={container}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 md:gap-4"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5 md:gap-4"
           >
             <motion.div variants={item}>
               <GlassCard className="border-primary/20 bg-white/[0.03] p-4 md:p-6 flex items-center md:flex-col md:text-center group hover:border-primary/40 transition-colors h-full gap-4 md:gap-0">
@@ -154,6 +168,30 @@ export default function FarmerDashboardPage() {
                 <div className="flex flex-col md:items-center flex-1">
                   <p className="stat-label mb-0.5 md:mb-1 text-[10px] md:text-xs text-left md:text-center">{t("my_farms")}</p>
                   <p className="stat-value text-2xl md:text-3xl text-left md:text-center leading-none">{farmsToShow.length}</p>
+                </div>
+              </GlassCard>
+            </motion.div>
+
+            <motion.div variants={item}>
+              <GlassCard
+                className="group h-full cursor-pointer border-fuchsia-300/20 bg-purple-950/25 p-4 transition-colors hover:border-fuchsia-200/40 md:flex md:flex-col md:items-center md:p-6 md:text-center"
+                onClick={() => router.push("/dashboard/farmer/carbon-credits")}
+              >
+                <div className="flex items-center gap-4 md:flex-col md:gap-0">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-fuchsia-300/10 transition-transform group-hover:scale-110 md:mb-4 md:h-12 md:w-12 md:rounded-xl">
+                    <Coins className="h-5 w-5 text-fuchsia-200 md:h-6 md:w-6" />
+                  </div>
+                  <div className="min-w-0 flex-1 md:flex md:flex-col md:items-center">
+                    <p className="stat-label mb-0.5 text-left text-[10px] md:mb-1 md:text-center md:text-xs">
+                      {t("hc_balance")}
+                    </p>
+                    <p className="stat-value truncate text-left text-2xl leading-none text-fuchsia-100 md:text-center md:text-3xl">
+                      {formatCarbon(carbonPortfolio.hcBalance)}
+                    </p>
+                    <p className="mt-1 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-fuchsia-100/45 md:text-center">
+                      HC
+                    </p>
+                  </div>
                 </div>
               </GlassCard>
             </motion.div>

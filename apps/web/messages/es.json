@@ -33,6 +33,7 @@
     "my_proposals": "Mis Solicitudes",
     "investments": "Inversiones",
     "proposals": "Solicitudes",
+    "carbon_credits": "Créditos de Carbono",
     "demo_alerts": "Alertas Demo",
     "sign_out": "Cerrar Sesión",
     "signing_out": "Cerrando sesión...",
@@ -477,6 +478,8 @@
     "my_farms": "Mis Fincas",
     "view_all_farms": "Ver todas las fincas",
     "available_lots": "Lotes Disponibles",
+    "hc_balance": "Balance HC",
+    "view_carbon_credits": "Ver créditos de carbono",
     "view_all_lots": "Ver todos los lotes",
     "my_proposals": "Mis Propuestas",
     "no_farms_yet": "Aún no has registrado ninguna finca.",
@@ -506,6 +509,25 @@
     "plan_ready": "Plan listo",
     "back_to_dashboard": "Volver al Panel",
     "failed_load": "No se pudieron cargar los lotes. Por favor actualiza."
+  },
+  "carbon_credits": {
+    "title": "Créditos de Carbono",
+    "subtitle": "Monitorea las estimaciones de carbono por lote y las unidades HC generadas desde la evidencia de cada snapshot Copernicus.",
+    "back_dashboard": "Volver al panel",
+    "failed": "No se pudieron cargar los créditos de carbono. Por favor actualiza.",
+    "hc_balance": "Balance HC",
+    "available": "Crédito disponible",
+    "tracked_lots": "Lotes rastreados",
+    "empty_title": "Aún no hay estimaciones de carbono",
+    "empty_body": "Primero ejecuta el análisis Copernicus en un lote. Cuando el snapshot incluya captura de carbono, aparecerá aquí.",
+    "tokens": "tokens",
+    "issued": "HC emitido",
+    "last_token": "Último token",
+    "last_issued": "Última emisión",
+    "carbon_hash": "Hash carbono",
+    "transaction": "Transacción",
+    "manage_lot": "Gestionar lote",
+    "note": "La conversión se controla desde el detalle del lote, donde se revisan juntos la estimación de carbono y la evidencia blockchain."
   },
   "investments": {
     "my_title": "Mis Inversiones",
@@ -883,13 +905,13 @@
       "polygon_terrain_suitability": "Idoneidad de altitud y área del polígono"
     },
     "metrics": {
-      "s2_ndvi": "NDVI Sentinel-2",
-      "s2_ndre": "NDRE Sentinel-2",
-      "s2_ndwi": "NDWI Sentinel-2",
-      "s1_sar": "SAR Sentinel-1",
-      "s1_vh_vv_rvi": "S1 VH/VV · RVI",
-      "era5_rainfall": "Lluvia ERA5",
-      "dem_altitude": "Altitud DEM"
+      "s2_ndvi": "Vigor del dosel",
+      "s2_ndre": "Clorofila",
+      "s2_ndwi": "Estrés hídrico",
+      "s1_sar": "Estructura radar",
+      "s1_vh_vv_rvi": "Índice radar dosel",
+      "era5_rainfall": "Lluvia anual",
+      "dem_altitude": "Altitud"
     },
     "section_help": {
       "risk_score": "Un puntaje 0-100 de riesgo financiero construido con evidencia satelital, climatica, de terreno y EUDR.",

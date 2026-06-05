@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   BellRing,
+  Coins,
   DollarSign,
   Inbox,
   LayoutDashboard,
@@ -93,6 +94,15 @@ export default function FarmerSidebar({ isMobileOpen, onClose }: Props) {
         >
           <DollarSign className="size-4" />
           {t("investments")}
+        </Button>
+
+        <Button
+          variant="ghost"
+          className={navClasses(isActive("/dashboard/farmer/carbon-credits", false))}
+          onClick={() => navigate("/dashboard/farmer/carbon-credits")}
+        >
+          <Coins className="size-4" />
+          {t("carbon_credits")}
         </Button>
 
         <Button

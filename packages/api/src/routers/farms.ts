@@ -182,7 +182,15 @@ export const farmsRouter = router({
       const items = await ctx.db.query.farms.findMany({
         where: farmerId ? eq(farms.farmerId, farmerId) : undefined,
         with: {
-          lots: { with: { plans: true } },
+          lots: {
+            with: {
+              plans: true,
+              copernicusSnapshots: {
+                orderBy: (table, { desc }) => [desc(table.createdAt)],
+                limit: 1,
+              },
+            },
+          },
           images: {
             columns: {
               id: true,
