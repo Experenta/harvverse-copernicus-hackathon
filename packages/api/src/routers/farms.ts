@@ -83,7 +83,7 @@ function publicImagePayload(image: Awaited<ReturnType<typeof withImageUrl>>) {
   };
 }
 
-async function withPrimaryImage<T extends { images?: FarmImageRecord[] }>(farm: T) {
+async function withPrimaryImage<T>(farm: T & { images?: FarmImageRecord[] }) {
   const images = await withImageUrls(farm.images);
   const primary =
     images.find((image) => image.isPrimary) ??
@@ -98,8 +98,8 @@ async function withPrimaryImage<T extends { images?: FarmImageRecord[] }>(farm: 
   };
 }
 
-async function withPublicPrimaryImage<T extends { images?: FarmImageRecord[] }>(
-  farm: T,
+async function withPublicPrimaryImage<T>(
+  farm: T & { images?: FarmImageRecord[] },
 ) {
   const images = (await withImageUrls(farm.images)).map(publicImagePayload);
   const primary =
@@ -115,7 +115,7 @@ async function withPublicPrimaryImage<T extends { images?: FarmImageRecord[] }>(
   };
 }
 
-async function withPublicImages<T extends { images?: FarmImageRecord[] }>(farm: T) {
+async function withPublicImages<T>(farm: T & { images?: FarmImageRecord[] }) {
   const { images: _images, ...rest } = farm;
   const images = await withImageUrls(farm.images);
   const publicImages = images.map(publicImagePayload);

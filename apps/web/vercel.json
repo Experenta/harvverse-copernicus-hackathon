@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter @harvverse-copernicus-hackathon/sentinel-agent check-types",
+  "buildCommand": "cd ../.. && pnpm --filter web build",
   "functions": {
-    "api/**/*.ts": {
+    "src/app/api/**/*.ts": {
       "maxDuration": 60
     }
   }
