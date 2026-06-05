@@ -58,8 +58,8 @@ El servicio expone endpoints que el backend de Harvverse llamará por HTTP:
 
 ```text
 Mi servicio (Vercel)
-    → POST api.gupshup.io/wa/api/v1/template/msg
-    → Template aprobado (harvverse_sentinel_alert)
+    → POST partner.gupshup.io/partner/app/{appId}/template/msg
+    → Template aprobado (harvverse_sentinel_alert_v2)
     → WhatsApp del agricultor
 ```
 
@@ -68,10 +68,11 @@ Variables en Vercel (ver `.env.example`):
 ```bash
 HARVVERSE_API_BASE_URL=https://...
 SENTINEL_AGENT_API_KEY=...
-GUPSHUP_API_KEY=...
+GUPSHUP_APP_ID=...
+GUPSHUP_PARTNER_TOKEN=...
 GUPSHUP_SOURCE=...
 GUPSHUP_APP_NAME=...
-GUPSHUP_TEMPLATE_HARVVERSE_SENTINEL_ALERT=...
+GUPSHUP_TEMPLATE_HARVVERSE_SENTINEL_ALERT_V2=...
 ```
 
 Harvverse **no necesita** mi `ANTHROPIC_API_KEY`. Solo la URL de alertas.
@@ -201,4 +202,3 @@ Opciones de repo para producción:
 - [ ] Proyecto Vercel propio conectado al repo (rama)
 - [ ] Template ID Gupshup en producción
 - [ ] LLM opcional sobre `message.body`
-
