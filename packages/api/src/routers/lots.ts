@@ -498,6 +498,8 @@ async function runBaseSepoliaCopernicusWriter({
 
   const provider = new ethers.JsonRpcProvider(env.BASE_SEPOLIA_RPC_URL);
   const wallet = new ethers.Wallet(normalizePrivateKey(env.DEPLOYER_PRIVATE_KEY), provider);
+  let nextNonce = await provider.getTransactionCount(wallet.address, "pending");
+  const txOverrides = () => ({ nonce: nextNonce++ });
   const lotAddress = resolveEnvAddress(
     "HARVVERSE_LOT_ADDRESS",
     env.HARVVERSE_LOT_ADDRESS,
@@ -522,6 +524,7 @@ async function runBaseSepoliaCopernicusWriter({
       economics.priceCentsPerLb,
       economics.ticketCents,
       economics.farmerShareBps,
+      txOverrides(),
     );
     await createTx.wait();
   }
@@ -532,6 +535,7 @@ async function runBaseSepoliaCopernicusWriter({
     eudrCompliant,
     scoreHash,
     snapshot.scoreVersion,
+    txOverrides(),
   );
   const receipt = await tx.wait();
 
@@ -568,18 +572,30 @@ async function runBaseSepoliaCopernicusWriter({
             0,
             methodVersion,
             evidenceUri,
+            txOverrides(),
           );
           const registryReceipt = await registryTx.wait();
           const credit = new ethers.Contract(creditAddress, HarvverseCarbonCreditAbi, wallet);
-          const creditTx = await credit.issueCredit(
-            lotId,
-            farmerWallet,
-            scoreHash,
-            carbonHash,
-            totalTCo2ePerYearHundredths,
-            evidenceUri,
-          );
-          await creditTx.wait();
+          let creditTransactionHash: string | null = null;
+          let creditError: string | null = null;
+          try {
+            const creditTx = await credit.issueCredit(
+              lotId,
+              farmerWallet,
+              scoreHash,
+              carbonHash,
+              totalTCo2ePerYearHundredths,
+              evidenceUri,
+              txOverrides(),
+            );
+            const creditReceipt = await creditTx.wait();
+            creditTransactionHash = creditReceipt?.hash ?? creditTx.hash;
+          } catch (error) {
+            creditError =
+              error instanceof Error
+                ? error.message
+                : "Carbon credit issuance failed.";
+          }
 
           return {
             ok: true,
@@ -590,6 +606,11 @@ async function runBaseSepoliaCopernicusWriter({
             totalTCo2ePerYearHundredths,
             state: "estimate_recorded",
             methodVersion,
+            carbonCredit: {
+              contractAddress: creditAddress,
+              transactionHash: creditTransactionHash,
+              error: creditError,
+            },
           };
         })();
 
