@@ -5,7 +5,7 @@ import { Fingerprint } from "lucide-react";
 
 import { Badge } from "@harvverse-copernicus-hackathon/ui/components/badge";
 import { GlassCard } from "@harvverse-copernicus-hackathon/ui/components/glass-card";
-import { chainLabel } from "@/lib/chainProof";
+import { chainLabel, transactionExplorerUrl } from "@/lib/chainProof";
 import { shortHash, type CopernicusSnapshotView } from "@/lib/copernicus-snapshot";
 
 import { CopernicusProofRow, CopernicusSectionHeader } from "./copernicus-ui";
@@ -61,6 +61,10 @@ export function CopernicusProofCard({ snapshot }: { snapshot: CopernicusSnapshot
           description={t("proof_help.transaction")}
           mono={Boolean(snapshot.chain.transactionHash)}
           copyValue={snapshot.chain.transactionHash}
+          externalUrl={transactionExplorerUrl(
+            snapshot.chain.chainId,
+            snapshot.chain.transactionHash,
+          )}
         />
         <CopernicusProofRow
           label={t("confidence")}

@@ -207,8 +207,10 @@ export default function FarmerLotDetailPage() {
                 </div>
               </div>
 
-              <CopernicusSignalsGrid snapshot={parsedCopernicusSnapshot} />
-              <CopernicusCarbonCaptureCard snapshot={parsedCopernicusSnapshot} interactive />
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
+                <CopernicusSignalsGrid snapshot={parsedCopernicusSnapshot} />
+                <CopernicusCarbonCaptureCard snapshot={parsedCopernicusSnapshot} interactive />
+              </div>
 
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
@@ -287,8 +289,9 @@ export default function FarmerLotDetailPage() {
           )}
         </GlassCard>
 
-        {lot.areaManzanas != null || lot.plantAgeYears != null || lot.harvestYear != null || lot.descriptiveName != null ? (
-          <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8 space-y-8">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          {lot.areaManzanas != null || lot.plantAgeYears != null || lot.harvestYear != null || lot.descriptiveName != null ? (
+            <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8 space-y-8">
             <div>
               <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider mb-6">{t("section_c_title")}</h2>
               <div className="grid grid-cols-2 gap-x-6 gap-y-6 text-sm sm:grid-cols-3">
@@ -448,10 +451,10 @@ export default function FarmerLotDetailPage() {
                 <p className="text-white/80 text-sm whitespace-pre-line leading-relaxed italic">{lot.cycleNotes}</p>
               </div>
             )}
-          </GlassCard>
-        ) : null}
+            </GlassCard>
+          ) : null}
 
-        {activePlan && (() => {
+          {activePlan && (() => {
           const farmerSharePct = (activePlan.splitFarmerBps ?? 0) / 100;
           const partnerSharePct = (activePlan.splitPartnerBps ?? 0) / 100;
           const earnings = computeEarnings({
@@ -564,7 +567,8 @@ export default function FarmerLotDetailPage() {
               </GlassCard>
             </>
           );
-        })()}
+          })()}
+        </div>
       </div>
     </div>
   );

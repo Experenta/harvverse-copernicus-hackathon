@@ -57,3 +57,9 @@ export function chainLabel(chainId: number) {
   if (chainId === 84532) return "Base Sepolia";
   return `Chain ${chainId}`;
 }
+
+export function transactionExplorerUrl(chainId: number, txHash: string | null | undefined) {
+  if (!txHash) return null;
+  if (chainId === 84532) return `https://sepolia.basescan.org/tx/${txHash}`;
+  return null;
+}

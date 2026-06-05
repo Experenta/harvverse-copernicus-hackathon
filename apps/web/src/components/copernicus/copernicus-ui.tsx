@@ -2,7 +2,7 @@
 
 import type { ComponentType, ReactNode } from "react";
 import { useState } from "react";
-import { Check, Copy, HelpCircle } from "lucide-react";
+import { Check, Copy, ExternalLink, HelpCircle } from "lucide-react";
 
 import {
   Tooltip,
@@ -146,12 +146,14 @@ export function CopernicusProofRow({
   description,
   mono = false,
   copyValue,
+  externalUrl,
 }: {
   label: string;
   value: string;
   description?: string;
   mono?: boolean;
   copyValue?: string | null;
+  externalUrl?: string | null;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -193,6 +195,17 @@ export function CopernicusProofRow({
             >
               {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
             </button>
+          ) : null}
+          {externalUrl ? (
+            <a
+              href={externalUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Open ${label}`}
+              className="inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-white/10 bg-transparent text-white/35 transition-colors hover:border-primary/30 hover:text-primary"
+            >
+              <ExternalLink className="size-3" />
+            </a>
           ) : null}
         </span>
       </div>

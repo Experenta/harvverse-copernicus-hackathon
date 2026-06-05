@@ -526,6 +526,7 @@
     "last_issued": "Última emisión",
     "carbon_hash": "Hash carbono",
     "transaction": "Transacción",
+    "issue_hc": "Emitir HC",
     "manage_lot": "Gestionar lote",
     "note": "La conversión se controla desde el detalle del lote, donde se revisan juntos la estimación de carbono y la evidencia blockchain."
   },

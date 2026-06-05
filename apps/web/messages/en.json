@@ -525,6 +525,7 @@
     "last_issued": "Last issued",
     "carbon_hash": "Carbon hash",
     "transaction": "Transaction",
+    "issue_hc": "Issue HC",
     "manage_lot": "Manage lot",
     "note": "Conversion is controlled from the lot detail, where the carbon estimate and blockchain evidence can be reviewed together."
   },

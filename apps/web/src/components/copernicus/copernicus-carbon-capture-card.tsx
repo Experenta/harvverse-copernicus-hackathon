@@ -8,15 +8,16 @@ import { Button } from "@harvverse-copernicus-hackathon/ui/components/button";
 import { GlassCard } from "@harvverse-copernicus-hackathon/ui/components/glass-card";
 
 import {
-  buildCarbonTokenId,
   buildDefaultCarbonLedger,
   carbonLedgerStorageKey,
   formatCarbon,
+  issueCarbonLedgerCredit,
   parseCarbonLedger,
   positiveNumber,
   roundCarbon,
   type CarbonLedgerState,
 } from "@/lib/carbon-ledger";
+import { transactionExplorerUrl } from "@/lib/chainProof";
 import { shortHash, metricValue, type CopernicusSnapshotView } from "@/lib/copernicus-snapshot";
 import { CopernicusMetric, CopernicusProofRow, CopernicusSectionHeader } from "./copernicus-ui";
 
@@ -120,6 +121,10 @@ function CarbonCaptureCardContent({
               value={shortHash(carbonRegistry.transactionHash)}
               mono
               copyValue={carbonRegistry.transactionHash}
+              externalUrl={transactionExplorerUrl(
+                snapshot.chain.chainId,
+                carbonRegistry.transactionHash,
+              )}
             />
           </div>
         ) : null}
@@ -172,18 +177,7 @@ function CarbonCreditSimulation({
   const issueCarbonToken = () => {
     if (!canIssue) return;
 
-    setLedger((current) => {
-      const amount = roundCarbon(current.availableTCo2e);
-      const nextCount = current.tokenCount + 1;
-
-      return {
-        availableTCo2e: 0,
-        hcBalance: roundCarbon(current.hcBalance + amount),
-        tokenCount: nextCount,
-        lastTokenId: buildCarbonTokenId(scoreHash, nextCount),
-        lastIssuedAt: new Date().toISOString(),
-      };
-    });
+    setLedger((current) => issueCarbonLedgerCredit(current, scoreHash));
   };
 
   const addNextCycleEstimate = () => {
@@ -196,9 +190,20 @@ function CarbonCreditSimulation({
   };
 
   return (
-    <div className="mt-5 min-w-0 overflow-hidden rounded-2xl border border-fuchsia-300/20 bg-purple-950/30">
-      <div className="grid min-w-0 gap-0 xl:grid-cols-[170px_minmax(0,1fr)]">
-        <div className="flex flex-col items-center justify-center gap-3 border-b border-fuchsia-300/10 bg-[radial-gradient(circle_at_35%_25%,rgba(216,180,254,0.95),rgba(147,51,234,0.7)_44%,rgba(49,46,129,0.55)_80%)] p-4 xl:border-b-0 xl:border-r">
+    <div className="relative mt-5 min-w-0 overflow-hidden rounded-2xl border border-fuchsia-300/20 bg-purple-950/30">
+      <Button
+        type="button"
+        size="icon"
+        variant="outline"
+        aria-label="Add next credit cycle"
+        onClick={addNextCycleEstimate}
+        disabled={annualEstimate <= 0}
+        className="absolute right-3 top-3 z-10 size-8 rounded-full border-fuchsia-100/20 bg-black/15 text-fuchsia-50/55 hover:border-fuchsia-100/40 hover:bg-black/25 hover:text-fuchsia-50"
+      >
+        <RefreshCw className="size-3.5" />
+      </Button>
+      <div className="grid min-w-0 gap-0 2xl:grid-cols-[170px_minmax(0,1fr)]">
+        <div className="flex flex-col items-center justify-center gap-3 border-b border-fuchsia-300/10 bg-[radial-gradient(circle_at_35%_25%,rgba(216,180,254,0.95),rgba(147,51,234,0.7)_44%,rgba(49,46,129,0.55)_80%)] p-4 2xl:border-b-0 2xl:border-r">
           <div className="grid size-24 place-items-center rounded-full border border-fuchsia-100/50 bg-white/10 shadow-[0_0_42px_rgba(168,85,247,0.35)]">
             <div className="grid size-16 place-items-center rounded-full border border-fuchsia-50/70 bg-black/25 text-center">
               <img
@@ -236,7 +241,7 @@ function CarbonCreditSimulation({
             />
           </div>
 
-          <div className="mt-4 grid min-w-0 gap-2 sm:grid-cols-2">
+          <div className="mt-4">
             <Button
               type="button"
               onClick={issueCarbonToken}
@@ -244,17 +249,7 @@ function CarbonCreditSimulation({
               className="h-auto min-h-10 min-w-0 rounded-xl border-emerald-300/25 bg-emerald-300 px-3 py-2 text-center text-emerald-950 whitespace-normal hover:bg-emerald-200"
             >
               <ArrowRightLeft className="size-4" />
-              Convert to HC
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addNextCycleEstimate}
-              disabled={annualEstimate <= 0}
-              className="h-auto min-h-10 min-w-0 rounded-xl border-white/10 bg-transparent px-3 py-2 text-center text-white whitespace-normal hover:border-primary/25 hover:bg-primary/[0.03]"
-            >
-              <RefreshCw className="size-4" />
-              New credit cycle
+              Issue HC
             </Button>
           </div>
 

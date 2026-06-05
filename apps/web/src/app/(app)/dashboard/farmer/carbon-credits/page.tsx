@@ -12,8 +12,9 @@ import { Button } from "@harvverse-copernicus-hackathon/ui/components/button";
 import { GlassCard } from "@harvverse-copernicus-hackathon/ui/components/glass-card";
 import { Skeleton } from "@harvverse-copernicus-hackathon/ui/components/skeleton";
 
-import { formatCarbon } from "@/lib/carbon-ledger";
+import { formatCarbon, issueCarbonLedgerCredit } from "@/lib/carbon-ledger";
 import { buildCarbonCreditPortfolio } from "@/lib/carbon-portfolio";
+import { transactionExplorerUrl } from "@/lib/chainProof";
 import { shortHash } from "@/lib/copernicus-snapshot";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { trpc } from "@/utils/trpc";
@@ -31,9 +32,11 @@ function formatDate(value: string | null) {
 function CopyValueLine({
   label,
   value,
+  externalUrl,
 }: {
   label: string;
   value: string | null;
+  externalUrl?: string | null;
 }) {
   const [copied, setCopied] = useState(false);
   const displayValue = shortHash(value);
@@ -67,6 +70,17 @@ function CopyValueLine({
           >
             {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
           </button>
+        ) : null}
+        {externalUrl ? (
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`Open ${label}`}
+            className="inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-white/10 bg-transparent text-white/35 transition-colors hover:border-primary/30 hover:text-primary"
+          >
+            <ExternalLink className="size-3" />
+          </a>
         ) : null}
       </div>
     </div>
@@ -106,6 +120,14 @@ export default function FarmerCarbonCreditsPage() {
       ),
     [farms, ledgerRefresh],
   );
+
+  function issueCredit(storageKey: string, scoreHash: string) {
+    const row = portfolio.rows.find((item) => item.storageKey === storageKey);
+    if (!row || row.ledger.availableTCo2e <= 0) return;
+    const nextLedger = issueCarbonLedgerCredit(row.ledger, scoreHash);
+    window.localStorage.setItem(storageKey, JSON.stringify(nextLedger));
+    setLedgerRefresh(Date.now());
+  }
 
   if (userLoading || farmsLoading) {
     return (
@@ -268,15 +290,33 @@ export default function FarmerCarbonCreditsPage() {
 
                   <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
                     <CopyValueLine label={t("carbon_hash")} value={row.carbonHash} />
-                    <CopyValueLine label={t("transaction")} value={row.transactionHash} />
-                    <Button
-                      size="sm"
-                      className="bg-primary font-bold text-[#001020] hover:bg-primary/90"
-                      onClick={() => router.push(`/dashboard/farmer/lots/${row.lotId}` as Route)}
-                    >
-                      {t("manage_lot")}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <CopyValueLine
+                      label={t("transaction")}
+                      value={row.transactionHash}
+                      externalUrl={transactionExplorerUrl(
+                        row.snapshot.chain.chainId,
+                        row.transactionHash,
+                      )}
+                    />
+                    <div className="flex flex-col gap-2 sm:flex-row md:flex-col">
+                      <Button
+                        size="sm"
+                        className="bg-emerald-300 font-bold text-emerald-950 hover:bg-emerald-200"
+                        disabled={row.ledger.availableTCo2e <= 0}
+                        onClick={() => issueCredit(row.storageKey, row.snapshot.scoreHash)}
+                      >
+                        {t("issue_hc")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-primary/30 text-primary hover:bg-primary/10"
+                        onClick={() => router.push(`/dashboard/farmer/lots/${row.lotId}` as Route)}
+                      >
+                        {t("manage_lot")}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </GlassCard>
               ))}

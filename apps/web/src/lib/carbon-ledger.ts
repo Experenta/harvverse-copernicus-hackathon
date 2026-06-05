@@ -72,3 +72,19 @@ export function buildCarbonTokenId(scoreHash: string, count: number): string {
   return `HC-${hashSegment}-${String(count).padStart(2, "0")}`;
 }
 
+export function issueCarbonLedgerCredit(
+  current: CarbonLedgerState,
+  scoreHash: string,
+): CarbonLedgerState {
+  const amount = roundCarbon(current.availableTCo2e);
+  if (amount <= 0) return current;
+
+  const nextCount = current.tokenCount + 1;
+  return {
+    availableTCo2e: 0,
+    hcBalance: roundCarbon(current.hcBalance + amount),
+    tokenCount: nextCount,
+    lastTokenId: buildCarbonTokenId(scoreHash, nextCount),
+    lastIssuedAt: new Date().toISOString(),
+  };
+}
