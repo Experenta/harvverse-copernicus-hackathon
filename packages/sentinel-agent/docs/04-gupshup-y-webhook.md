@@ -138,14 +138,14 @@ Compara en Postman `gupshup.requestPreview` con la doc Gupshup antes del primer 
 
 ## 6. Pasar a envío real
 
-Las credenciales ya están en `.env`:
+Configurar estas credenciales en `.env` local o en Vercel:
 
 ```
-GUPSHUP_APP_ID=b4bbd73d-50dd-4709-9593-4198518afa22
-GUPSHUP_PARTNER_TOKEN=sk_2ff5f2cf61794b289ae47b133e276a49
-GUPSHUP_SOURCE=19063794460
+GUPSHUP_APP_ID=<gupshup-app-id>
+GUPSHUP_PARTNER_TOKEN=<gupshup-partner-token>
+GUPSHUP_SOURCE=<whatsapp-source-number>
 GUPSHUP_APP_NAME=Harvverse
-GUPSHUP_TEMPLATE_HARVVERSE_SENTINEL_ALERT_V2=867d698d-9e34-43c6-ba67-f2c179c822d7
+GUPSHUP_TEMPLATE_HARVVERSE_SENTINEL_ALERT_V2=<approved-template-id>
 ```
 
 `POST /api/scenarios` sin `?dryRun=1` para envío real.

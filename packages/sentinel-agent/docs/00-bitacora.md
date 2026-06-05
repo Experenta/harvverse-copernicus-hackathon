@@ -104,8 +104,8 @@ Ver `.env.example`. Críticas:
 
 - `HARVVERSE_API_BASE_URL` — backend datos
 - `SENTINEL_AGENT_API_KEY` — saliente a Harvverse
-- `GUPSHUP_TEMPLATE_HARVVERSE_SENTINEL_ALERT` — cuando exista
-- `GUPSHUP_API_KEY`, `GUPSHUP_SOURCE`, `GUPSHUP_APP_NAME` — envío live
+- `GUPSHUP_APP_ID`, `GUPSHUP_PARTNER_TOKEN`, `GUPSHUP_SOURCE`, `GUPSHUP_APP_NAME` — envío live por Partner API
+- `GUPSHUP_TEMPLATE_HARVVERSE_SENTINEL_ALERT_V2` — cuando el template esté aprobado
 
 ### 2026-06-04 — AI SDK reintegrado (sin depender de template)
 

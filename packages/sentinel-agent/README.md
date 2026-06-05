@@ -2,7 +2,7 @@
 
 Microservicio HTTP para alertas Sentinel: consume escenarios del backend Harvverse y envía **templates WhatsApp vía Gupshup**.
 
-No modifica `apps/web`. Despliegue: Vercel con Root Directory `packages/sentinel-agent`.
+Despliegue: Vercel con Root Directory `packages/sentinel-agent`. La pantalla admin de Harvverse puede llamarlo vía `SENTINEL_AGENT_BASE_URL`.
 
 ## Documentación
 
@@ -25,6 +25,15 @@ pnpm --filter @harvverse-copernicus-hackathon/sentinel-agent dev:api
 - **GET** `http://localhost:3099/api/health`
 - **POST** `http://localhost:3099/api/scenarios?dryRun=1&fixture=ndvi` (sin body)
 - Opcional: `&notify=1` si tienes `WEBHOOK_NOTIFY_URL` en `.env`
+
+Desde `apps/web`, configurar opcionalmente:
+
+```bash
+SENTINEL_AGENT_BASE_URL=http://localhost:3099
+SENTINEL_AGENT_INBOUND_KEY=
+```
+
+Luego usar `/dashboard/admin/sentinel-demo` para generar el payload y mandarlo al agente en dry-run o envío real.
 
 Importar colección: `fixtures/postman/sentinel-agent.postman_collection.json`
 
