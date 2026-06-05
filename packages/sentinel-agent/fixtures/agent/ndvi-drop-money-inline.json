@@ -1,0 +1,61 @@
+{
+  "ok": true,
+  "scenario": "ndvi_drop_money",
+  "signal": "S2_ndvi_drop",
+  "sourceMode": "demo_seeded",
+  "demoData": true,
+  "context": {
+    "lot": {
+      "id": 4,
+      "code": "lotetest",
+      "farmName": "Finca Test",
+      "region": "Intibuca",
+      "country": "Honduras",
+      "variety": "Pacamara",
+      "altitudeMasl": 1248,
+      "areaManzanas": 1.23
+    },
+    "farmer": {
+      "name": "Claudio",
+      "phone": "50488423064"
+    },
+    "snapshot": {
+      "sourceMode": "live",
+      "riskScore": 90,
+      "riskTier": "excellent",
+      "eudrStatus": "verified",
+      "eligibleForInvestment": true,
+      "scoreHash": "demo-hash"
+    },
+    "publicUrl": "http://localhost:3001/lot/lotetest",
+    "signals": {
+      "currentNdvi": 0.45,
+      "previousNdvi": 0.65,
+      "ndviDropPct": 30.8,
+      "yieldRange": "14.0-21.0 qq",
+      "farmerProfitUsd": 2737,
+      "metadataStatus": "written"
+    }
+  },
+  "knowledge": {
+    "title": "Caída de NDVI",
+    "guardrails": ["No asumir causa solo por NDVI."]
+  },
+  "message": {
+    "templateKey": "sentinel_ndvi_drop_money",
+    "title": "Caída de NDVI",
+    "body": "Hola Sheylla, detectamos una caída de NDVI en tu lote lotetest. Risk Score 90. Revisa el detalle en el enlace."
+  },
+  "whatsapp": {
+    "templateKey": "harvverse_sentinel_alert_v2",
+    "variables": [
+      "Nombre farmer",
+      "Nombre finca",
+      "Código lote",
+      "Risk score",
+      "Yield range",
+      "URL pública QR",
+      "Mensaje completo"
+    ]
+  }
+}

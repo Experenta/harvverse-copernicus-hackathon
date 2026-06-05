@@ -181,6 +181,34 @@ type ApiError = {
   ok?: false;
   error?: string;
   message?: string;
+  details?: unknown;
+};
+
+type SentinelAgentDispatch = {
+  ok: true;
+  scenario: ScenarioResponse;
+  sentinelAgent: {
+    ok?: boolean;
+    ai?: {
+      used?: boolean;
+      model?: string | null;
+      source?: string;
+      error?: string | null;
+    };
+    gupshup?: {
+      attempted?: boolean;
+      delivered?: boolean;
+      dryRun?: boolean;
+      destination?: string | null;
+      messageId?: string | null;
+      error?: string | null;
+      requestPreview?: unknown;
+    };
+    outbound?: {
+      messagePreview?: string;
+    };
+    error?: string;
+  };
 };
 
 const DEFAULT_OVERRIDES = {
@@ -218,9 +246,15 @@ export default function SentinelDemoAdminPage() {
   const [selectedScenario, setSelectedScenario] =
     useState<ScenarioKey>("ndvi_drop_money");
   const [overrides, setOverrides] = useState(DEFAULT_OVERRIDES);
+  const [farmerPhone, setFarmerPhone] = useState("");
+  const [sendMode, setSendMode] = useState<"dry-run" | "send">("dry-run");
   const [result, setResult] = useState<ScenarioResponse | null>(null);
+  const [dispatchResult, setDispatchResult] =
+    useState<SentinelAgentDispatch | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDispatching, setIsDispatching] = useState(false);
   const [copied, setCopied] = useState<"message" | "json" | null>(null);
 
   const selected = useMemo(
@@ -237,7 +271,11 @@ export default function SentinelDemoAdminPage() {
     [availableLots, lotCode],
   );
 
-  const rawJson = result ? JSON.stringify(result, null, 2) : "";
+  const rawJson = dispatchResult
+    ? JSON.stringify(dispatchResult, null, 2)
+    : result
+      ? JSON.stringify(result, null, 2)
+      : "";
 
   useEffect(() => {
     if (!lotCode && availableLots.length > 0) {
@@ -249,6 +287,8 @@ export default function SentinelDemoAdminPage() {
   async function triggerScenario() {
     setIsLoading(true);
     setError(null);
+    setDispatchError(null);
+    setDispatchResult(null);
     setCopied(null);
 
     try {
@@ -294,6 +334,63 @@ export default function SentinelDemoAdminPage() {
     }
   }
 
+  async function sendScenario() {
+    setIsDispatching(true);
+    setError(null);
+    setDispatchError(null);
+    setCopied(null);
+
+    try {
+      const response = await fetch("/api/dashboard/sentinel/scenarios/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          lotCode: lotCode.trim(),
+          scenario: selectedScenario,
+          farmerPhone: farmerPhone.trim(),
+          dryRun: sendMode === "dry-run",
+          llm: "auto",
+          demoOverrides: {
+            previousNdvi: optionalNumber(overrides.previousNdvi),
+            currentNdvi: optionalNumber(overrides.currentNdvi),
+            temperatureC: optionalNumber(overrides.temperatureC),
+            humidityPct: optionalNumber(overrides.humidityPct),
+            variety: overrides.variety.trim() || undefined,
+            phenologyStage: overrides.phenologyStage.trim() || undefined,
+          },
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | SentinelAgentDispatch
+        | ApiError
+        | null;
+
+      if (!response.ok || !payload || payload.ok !== true) {
+        const errorPayload = payload as ApiError | null;
+        const message =
+          errorPayload?.error ??
+          errorPayload?.message ??
+          `Sentinel Agent request failed with HTTP ${response.status}.`;
+        throw new Error(message);
+      }
+
+      setResult(payload.scenario);
+      setDispatchResult(payload);
+    } catch (cause) {
+      setDispatchResult(null);
+      setDispatchError(
+        cause instanceof Error
+          ? cause.message
+          : "No se pudo enviar la alerta por Sentinel Agent.",
+      );
+    } finally {
+      setIsDispatching(false);
+    }
+  }
+
   async function copyMessage() {
     if (!result?.message.body) return;
     const ok = await copyText(result.message.body);
@@ -330,8 +427,8 @@ export default function SentinelDemoAdminPage() {
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-white/60 md:text-base">
               Previsualiza el contexto, base de conocimiento, borrador en español y variables de
-              WhatsApp para que Sheyla conecte AI SDK o el worker sin depender de n8n. Esta pantalla
-              no envía WhatsApp todavía.
+              WhatsApp. También puede enviar el payload al servicio Sentinel Agent de Sheyla para
+              ejecutar AI SDK y Gupshup en dry-run o envío real.
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -356,6 +453,23 @@ export default function SentinelDemoAdminPage() {
                 <BellRing className="mr-2 size-4" />
               )}
               Generar payload
+            </Button>
+            <Button
+              className="bg-emerald-400 text-[#001020] hover:bg-emerald-300"
+              disabled={
+                isDispatching ||
+                lotsLoading ||
+                !lotCode.trim() ||
+                !farmerPhone.trim()
+              }
+              onClick={() => void sendScenario()}
+            >
+              {isDispatching ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <BellRing className="mr-2 size-4" />
+              )}
+              {sendMode === "dry-run" ? "Probar Sentinel Agent" : "Enviar WhatsApp"}
             </Button>
           </div>
         </header>
@@ -419,6 +533,52 @@ export default function SentinelDemoAdminPage() {
                       </div>
                     </div>
                   ) : null}
+                </div>
+
+                <div className="grid gap-3 border border-emerald-400/20 bg-emerald-400/5 p-4">
+                  <div>
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200/70">
+                      WhatsApp destino
+                    </span>
+                    <Input
+                      inputMode="tel"
+                      value={farmerPhone}
+                      placeholder="504XXXXXXXX"
+                      onChange={(event) => setFarmerPhone(event.target.value)}
+                      className="h-10 border-white/15 bg-black/20 text-sm text-white"
+                    />
+                    <p className="mt-2 text-xs leading-relaxed text-white/45">
+                      Para la demo, escribe el número que recibirá el mensaje. El backend de
+                      Harvverse todavía no guarda teléfono del farmer en el contexto del agente.
+                    </p>
+                  </div>
+                  <div>
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200/70">
+                      Modo de envío
+                    </span>
+                    <Select
+                      value={sendMode}
+                      onValueChange={(value) =>
+                        setSendMode(value === "send" ? "send" : "dry-run")
+                      }
+                    >
+                      <SelectTrigger className="min-h-11 border-white/15 bg-black/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dry-run">
+                          Dry-run: arma Gupshup sin enviar
+                        </SelectItem>
+                        <SelectItem value="send">
+                          Envío real por Gupshup
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-2 text-xs leading-relaxed text-white/45">
+                      El envío real requiere que `packages/sentinel-agent` esté corriendo o
+                      desplegado con credenciales de Gupshup y template aprobado.
+                    </p>
+                  </div>
                 </div>
 
                 <div>
@@ -673,6 +833,11 @@ export default function SentinelDemoAdminPage() {
                   {error}
                 </div>
               ) : null}
+              {dispatchError ? (
+                <div className="mt-3 border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-200">
+                  {dispatchError}
+                </div>
+              ) : null}
 
               {!result && !error ? (
                 <div className="flex min-h-80 flex-col items-center justify-center border border-dashed border-white/10 bg-black/10 p-8 text-center">
@@ -710,6 +875,56 @@ export default function SentinelDemoAdminPage() {
                       Partner {formatMoney(result.context.signals.partnerReturnTotalUsd)}
                     </p>
                   </div>
+                </div>
+              ) : null}
+
+              {dispatchResult ? (
+                <div className="mt-4 grid gap-3 border border-emerald-400/25 bg-emerald-400/10 p-4 text-sm md:grid-cols-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-emerald-200/70">
+                      Gupshup
+                    </p>
+                    <p className="mt-1 font-bold text-white">
+                      {dispatchResult.sentinelAgent.gupshup?.delivered
+                        ? "Delivered"
+                        : dispatchResult.sentinelAgent.gupshup?.dryRun
+                          ? "Dry-run"
+                          : "Not delivered"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-emerald-200/70">
+                      Destino
+                    </p>
+                    <p className="mt-1 break-all font-bold text-white">
+                      {dispatchResult.sentinelAgent.gupshup?.destination ?? "pendiente"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-emerald-200/70">
+                      AI SDK
+                    </p>
+                    <p className="mt-1 font-bold text-white">
+                      {dispatchResult.sentinelAgent.ai?.used
+                        ? dispatchResult.sentinelAgent.ai.model ?? "used"
+                        : "sin LLM"}
+                    </p>
+                  </div>
+                  {dispatchResult.sentinelAgent.gupshup?.messageId ? (
+                    <div className="md:col-span-3">
+                      <p className="text-xs uppercase tracking-[0.16em] text-emerald-200/70">
+                        Message ID
+                      </p>
+                      <p className="mt-1 break-all font-mono text-xs text-white/70">
+                        {dispatchResult.sentinelAgent.gupshup.messageId}
+                      </p>
+                    </div>
+                  ) : null}
+                  {dispatchResult.sentinelAgent.gupshup?.error ? (
+                    <div className="md:col-span-3 border border-yellow-400/25 bg-yellow-400/10 p-3 text-yellow-100">
+                      {dispatchResult.sentinelAgent.gupshup.error}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </GlassCard>

@@ -1,0 +1,71 @@
+Ya está listo el backend handoff para el agente/WhatsApp. No necesitas n8n para consumir datos; puedes llamar endpoints HTTP simples desde tu app/AI SDK/worker.
+
+Base local:
+
+http://localhost:3001
+Endpoints:
+
+GET /api/sentinel/agent/context?lotCode=lotetest
+Devuelve el contexto completo del lote: farmer, finca/lote, snapshot Copernicus, Sentinel-2, Sentinel-1, ERA5, EUDR, YieldPredict, proof/hash/on-chain local, QR público y señales normalizadas.
+
+GET /api/sentinel/agent/knowledge?signal=S2_ndvi_drop
+Devuelve la base de conocimiento para grounded AI. Signals disponibles:
+
+S1_roya
+S2_ndvi_drop
+S3_water_stress
+S4_eudr
+S5_rainfall
+S6_flowering_positive
+POST /api/sentinel/agent/scenarios
+Body ejemplo:
+
+{
+  "lotCode": "lotetest",
+  "scenario": "ndvi_drop_money",
+  "demoOverrides": {
+    "previousNdvi": 0.65,
+    "currentNdvi": 0.45
+  }
+}
+Scenarios disponibles:
+
+lot_approved
+eudr_blocked
+water_stress
+fungal_risk
+ndvi_drop_money
+roya_risk
+explain_roya
+flowering_positive
+El endpoint de scenarios devuelve todo lo que ocupas para WhatsApp/AI SDK:
+
+context
+knowledge
+message.title
+message.body
+message.guardrails
+whatsapp.templateKey
+whatsapp.variables
+sourceMode
+demoData
+Notas importantes:
+
+lot_approved, water_stress, fungal_risk, eudr_blocked usan el snapshot real si el escenario coincide con los datos actuales.
+ndvi_drop_money puede recibir previousNdvi y currentNdvi por demoOverrides para simular la caída y explicar impacto financiero.
+roya_risk por ahora usa datos sembrados/demo porque todavía no tenemos humedad real ni leaf wetness desde Copernicus. El response lo marca como sourceMode: "demo_seeded".
+explain_roya es educativo, no recalcula Copernicus.
+El texto base ya viene en español y con guardrails para que el AI SDK no invente diagnóstico ni recomiende fungicidas específicos.
+Ejemplo para alerta de roya demo:
+
+{
+  "lotCode": "lotetest",
+  "scenario": "roya_risk",
+  "demoOverrides": {
+    "temperatureC": 23,
+    "humidityPct": 88,
+    "variety": "Pacamara",
+    "phenologyStage": "llenado de fruto"
+  }
+}
+Con esto puedes conectar AI SDK y WhatsApp: llamas el scenario endpoint, usas context + knowledge + guardrails como grounding, y mandas message.body o una versión refinada por AI SDK al template/API de WhatsApp.
