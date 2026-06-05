@@ -24,11 +24,23 @@ type CopernicusSnapshot = {
   eligibleForInvestment: boolean;
   scoreHash: string;
   scoreVersion: string;
+  carbonCapture?: {
+    methodVersion?: string;
+    tCo2ePerHaYear?: number | null;
+    totalTCo2ePerYear?: number | null;
+  } | null;
   signedPayload?: {
     payload?: {
       lotCode?: string | null;
+      carbonCapture?: CopernicusSnapshot["carbonCapture"];
     };
   };
+};
+
+type ValidCarbonCapture = {
+  methodVersion?: string;
+  tCo2ePerHaYear: number;
+  totalTCo2ePerYear: number;
 };
 
 const repoRoot = path.resolve(__dirname, "../../..");
@@ -63,6 +75,32 @@ function toBytes32Hash(hash: string) {
   return normalized;
 }
 
+function isPositiveFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function carbonCaptureFromSnapshot(snapshot: CopernicusSnapshot): ValidCarbonCapture | null {
+  const raw =
+    snapshot.signedPayload?.payload?.carbonCapture ?? snapshot.carbonCapture ?? null;
+  if (
+    raw == null ||
+    !isPositiveFiniteNumber(raw.tCo2ePerHaYear) ||
+    !isPositiveFiniteNumber(raw.totalTCo2ePerYear)
+  ) {
+    return null;
+  }
+
+  return {
+    methodVersion: raw.methodVersion,
+    tCo2ePerHaYear: raw.tCo2ePerHaYear,
+    totalTCo2ePerYear: raw.totalTCo2ePerYear,
+  };
+}
+
+function toHundredths(value: number) {
+  return Math.round(value * 100);
+}
+
 async function main() {
   const snapshotPath = resolveSnapshotPath();
   const snapshot = readJson<CopernicusSnapshot>(snapshotPath);
@@ -84,6 +122,11 @@ async function main() {
   await lotContract.waitForDeployment();
   const lotAddress = await lotContract.getAddress();
 
+  const CarbonEstimateRegistry = await ethers.getContractFactory("CarbonEstimateRegistry");
+  const carbonRegistry = await CarbonEstimateRegistry.deploy(deployer.address);
+  await carbonRegistry.waitForDeployment();
+  const carbonRegistryAddress = await carbonRegistry.getAddress();
+
   await lotContract.createLot(
     lotId,
     deployer.address,
@@ -104,6 +147,45 @@ async function main() {
   const storedScore = await lotContract.getCopernicusScore(lotId);
   const contractInvestmentEligible = await lotContract.isInvestmentEligible(lotId);
   const expectedInvestmentEligible = snapshot.riskScore >= 60 && eudrCompliant;
+  const carbonCapture = carbonCaptureFromSnapshot(snapshot);
+  const carbonHash =
+    carbonCapture == null
+      ? null
+      : ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(carbonCapture)));
+  const carbonWrite =
+    carbonCapture == null
+      ? null
+      : await (async () => {
+          const tCo2ePerHaYearHundredths = toHundredths(carbonCapture.tCo2ePerHaYear);
+          const totalTCo2ePerYearHundredths = toHundredths(carbonCapture.totalTCo2ePerYear);
+          const methodVersion = carbonCapture.methodVersion ?? "carbon-screening-v0.1.0";
+          const tx = await carbonRegistry.recordCarbonEstimate(
+            lotId,
+            scoreHash,
+            carbonHash,
+            tCo2ePerHaYearHundredths,
+            totalTCo2ePerYearHundredths,
+            0,
+            methodVersion,
+            `harvverse://copernicus/${lotCode}/carbon`,
+          );
+          const receipt = await tx.wait();
+          const stored = await carbonRegistry.getCarbonEstimate(lotId);
+          return {
+            ok:
+              stored.scoreHash.toLowerCase() === scoreHash.toLowerCase() &&
+              stored.carbonHash.toLowerCase() === carbonHash.toLowerCase() &&
+              Number(stored.tCo2ePerHaYearHundredths) === tCo2ePerHaYearHundredths &&
+              Number(stored.totalTCo2ePerYearHundredths) === totalTCo2ePerYearHundredths,
+            transactionHash: receipt?.hash ?? tx.hash,
+            contractAddress: carbonRegistryAddress,
+            carbonHash,
+            tCo2ePerHaYearHundredths,
+            totalTCo2ePerYearHundredths,
+            state: "estimate_recorded",
+            methodVersion,
+          };
+        })();
 
   const result = {
     ok:
@@ -111,12 +193,14 @@ async function main() {
       storedScore.eudrCompliant === eudrCompliant &&
       storedScore.scoreHash.toLowerCase() === scoreHash.toLowerCase() &&
       contractInvestmentEligible === expectedInvestmentEligible &&
-      snapshot.eligibleForInvestment === expectedInvestmentEligible,
+      snapshot.eligibleForInvestment === expectedInvestmentEligible &&
+      (carbonWrite == null || carbonWrite.ok),
     network: network.name,
     chainId,
     snapshotPath: path.relative(repoRoot, snapshotPath),
     contractAddress: lotAddress,
     transactionHash: receipt?.hash ?? tx.hash,
+    carbonRegistry: carbonWrite,
     lotCode,
     lotId,
     written: {

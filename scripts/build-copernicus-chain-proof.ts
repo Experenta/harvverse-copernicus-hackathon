@@ -11,6 +11,11 @@ type Snapshot = {
   eligibleForInvestment: boolean;
   scoreHash: string;
   scoreVersion: string;
+  carbonCapture?: {
+    methodVersion?: string;
+    tCo2ePerHaYear?: number | null;
+    totalTCo2ePerYear?: number | null;
+  } | null;
   chain?: {
     transactionHash?: string | null;
     contractAddress?: string | null;
@@ -20,8 +25,15 @@ type Snapshot = {
   signedPayload?: {
     payload?: {
       lotCode?: string | null;
+      carbonCapture?: Snapshot["carbonCapture"];
     };
   };
+};
+
+type ValidCarbonCapture = {
+  methodVersion?: string;
+  tCo2ePerHaYear: number;
+  totalTCo2ePerYear: number;
 };
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -60,6 +72,32 @@ function normalizeChainId(value: unknown) {
   return chainId;
 }
 
+function isPositiveFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function carbonCaptureFromSnapshot(snapshot: Snapshot): ValidCarbonCapture | null {
+  const raw =
+    snapshot.signedPayload?.payload?.carbonCapture ?? snapshot.carbonCapture ?? null;
+  if (
+    raw == null ||
+    !isPositiveFiniteNumber(raw.tCo2ePerHaYear) ||
+    !isPositiveFiniteNumber(raw.totalTCo2ePerYear)
+  ) {
+    return null;
+  }
+
+  return {
+    methodVersion: raw.methodVersion,
+    tCo2ePerHaYear: raw.tCo2ePerHaYear,
+    totalTCo2ePerYear: raw.totalTCo2ePerYear,
+  };
+}
+
+function toHundredths(value: number) {
+  return Math.round(value * 100);
+}
+
 const snapshotPath = resolveRepoPath(
   process.env.SNAPSHOT_PATH ?? ".docs/sentinel/sample-copernicus-snapshot.json",
 );
@@ -81,6 +119,11 @@ if (!snapshot.scoreVersion) {
 
 const lotId = keccak256(toUtf8Bytes(lotCode));
 const scoreHash = normalizeScoreHash(snapshot.scoreHash);
+const carbonCapture = carbonCaptureFromSnapshot(snapshot);
+const carbonHash =
+  carbonCapture == null
+    ? null
+    : keccak256(toUtf8Bytes(JSON.stringify(carbonCapture))).toLowerCase();
 const eudrCompliant = snapshot.eudrStatus === "verified";
 const scoreEligible = snapshot.riskScore >= 60;
 const contractInvestmentEligible = scoreEligible && eudrCompliant;
@@ -118,6 +161,23 @@ const proof = {
       scoreVersion: snapshot.scoreVersion,
     },
   },
+  carbonRegistry:
+    carbonCapture == null || carbonHash == null
+      ? null
+      : {
+          contract: "CarbonEstimateRegistry",
+          functionName: "recordCarbonEstimate",
+          args: {
+            lotId,
+            scoreHash,
+            carbonHash,
+            tCo2ePerHaYearHundredths: toHundredths(carbonCapture.tCo2ePerHaYear),
+            totalTCo2ePerYearHundredths: toHundredths(carbonCapture.totalTCo2ePerYear),
+            state: "estimate_recorded",
+            methodVersion: carbonCapture.methodVersion ?? "carbon-screening-v0.1.0",
+            evidenceUri: `harvverse://copernicus/${lotCode}/carbon`,
+          },
+        },
   dbMarker: {
     scoreHash: scoreHash.slice(2),
     chainId,
