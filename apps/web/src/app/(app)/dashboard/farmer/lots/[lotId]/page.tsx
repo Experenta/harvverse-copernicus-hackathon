@@ -8,16 +8,12 @@ import type { Polygon } from "geojson";
 import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
-  Ban,
   ExternalLink,
-  Fingerprint,
   HelpCircle,
   Loader2,
   MapPin,
-  Mountain,
   Satellite,
   ShieldCheck,
-  TrendingUp,
 } from "lucide-react";
 
 import { Badge } from "@harvverse-copernicus-hackathon/ui/components/badge";
@@ -32,10 +28,14 @@ import {
 
 import { computeEarnings, formatUsdFromCents, formatUsdPrecise, formatUsd } from "@/lib/format";
 import { farmBoundaryForLotMap } from "@/lib/geo-polygon";
-import { asRecord, chainLabel, getSnapshotChain } from "@/lib/chainProof";
+import { getSnapshotChain } from "@/lib/chainProof";
 import { parseCopernicusSnapshot } from "@/lib/copernicus-snapshot";
 import { CopernicusCarbonCaptureCard } from "@/components/copernicus/copernicus-carbon-capture-card";
 import { CopernicusFarmerStatusCard } from "@/components/copernicus/copernicus-farmer-status-card";
+import { CopernicusProofCard } from "@/components/copernicus/copernicus-proof-card";
+import { CopernicusRiskScoreCard } from "@/components/copernicus/copernicus-risk-score-card";
+import { CopernicusSignalsGrid } from "@/components/copernicus/copernicus-signals-grid";
+import { CopernicusYieldPredictCard } from "@/components/copernicus/copernicus-yield-predict-card";
 import { trpc } from "@/utils/trpc";
 
 const PolygonDisplayMap = dynamic(() => import("@/components/polygon-display-map"), {
@@ -49,16 +49,6 @@ function scoreTone(score: number | null | undefined) {
   if (score >= 60) return "border-lime-400/30 bg-lime-400/10 text-lime-300";
   if (score >= 40) return "border-yellow-400/30 bg-yellow-400/10 text-yellow-300";
   return "border-red-400/30 bg-red-400/10 text-red-300";
-}
-
-function shortHash(hash: string | null | undefined, pendingLabel: string) {
-  if (!hash) return pendingLabel;
-  return hash.length > 18 ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : hash;
-}
-
-function metricValue(val: unknown, decimals = 2) {
-  const num = Number(val);
-  return Number.isFinite(num) ? num.toFixed(decimals) : "--";
 }
 
 export default function FarmerLotDetailPage() {
@@ -96,12 +86,6 @@ export default function FarmerLotDetailPage() {
     }),
   );
 
-  function eudrLabel(status: string | null | undefined) {
-    if (status === "verified") return t("eudr_verified");
-    if (status === "non_compliant") return t("eudr_non_compliant");
-    return t("eudr_pending");
-  }
-
   if (isLoading) {
     return (
       <div className="mx-auto max-w-5xl px-4 md:px-0">
@@ -128,17 +112,11 @@ export default function FarmerLotDetailPage() {
   const activePlan = lot.plans.find((p) => p.status !== "revoked") ?? null;
   const copernicusSnapshot = lot.copernicusSnapshot ?? null;
   const parsedCopernicusSnapshot = parseCopernicusSnapshot(copernicusSnapshot);
-  const copernicusEligible = copernicusSnapshot?.eligibleForInvestment === true;
   const chainProof = getSnapshotChain(copernicusSnapshot);
   const localProofWritten = chainProof.metadataStatus === "written";
 
-  const sentinel2 = asRecord(copernicusSnapshot?.sentinel2) ?? {};
-  const sentinel1 = asRecord(copernicusSnapshot?.sentinel1) ?? {};
-  const dem = asRecord(copernicusSnapshot?.dem) ?? {};
-  const era5 = asRecord(copernicusSnapshot?.era5) ?? {};
-
   return (
-    <div className="mx-auto max-w-5xl px-4 md:px-0 text-[#EEEEEE]">
+    <div className="mx-auto max-w-7xl px-4 md:px-0 text-[#EEEEEE]">
       <Button
         variant="ghost"
         className="mb-6 text-white/70 hover:bg-white/5 hover:text-white px-0 md:px-4"
@@ -217,92 +195,18 @@ export default function FarmerLotDetailPage() {
             </Badge>
           </div>
 
-          {copernicusSnapshot ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className={`rounded-lg border p-3 ${scoreTone(copernicusSnapshot.riskScore)}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">{t("risk_score")}</p>
-                  <p className="mt-1 text-3xl font-black">
-                    {copernicusSnapshot.riskScore}
-                    <span className="text-sm opacity-60">/100</span>
-                  </p>
-                </div>
-                <div className={`rounded-lg border p-3 ${copernicusEligible ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300" : "border-red-400/30 bg-red-400/10 text-red-300"}`}>
-                  <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">
-                    {t("investment_gate")}
-                  </p>
-                  <div className="mt-2 flex items-center gap-2 text-sm font-black">
-                    {copernicusEligible ? <ShieldCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
-                    {copernicusEligible ? t("eligible") : t("blocked")}
-                  </div>
+          {parsedCopernicusSnapshot ? (
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+                <CopernicusRiskScoreCard snapshot={parsedCopernicusSnapshot} />
+                <div className="flex flex-col gap-4">
+                  <CopernicusYieldPredictCard snapshot={parsedCopernicusSnapshot} />
+                  <CopernicusProofCard snapshot={parsedCopernicusSnapshot} />
                 </div>
               </div>
 
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                  <span className="text-white/45">EUDR</span>
-                  <span className="font-bold text-white">{eudrLabel(copernicusSnapshot.eudrStatus)}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                  <span className="text-white/45">{t("dem_altitude")}</span>
-                  <span className="font-bold text-white">{metricValue(dem.altitudeMasl, 0)} {t("unit_masl")}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">{t("s2_ndvi")}</span>
-                    <p className="mt-1 font-mono text-sm text-primary">{metricValue(sentinel2.currentNdvi)}</p>
-                  </div>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">{t("s2_ndre")}</span>
-                    <p className="mt-1 font-mono text-sm text-primary">{metricValue(sentinel2.currentNdre)}</p>
-                  </div>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">{t("s2_ndwi")}</span>
-                    <p className="mt-1 font-mono text-sm text-primary">{metricValue(sentinel2.currentNdwi)}</p>
-                  </div>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white/40">{t("s1_vh_vv_rvi")}</span>
-                    <p className="mt-1 font-mono text-sm text-primary">
-                      {metricValue(sentinel1.vhVvRatio)} · {metricValue(sentinel1.radarVegetationIndex)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                  <span className="text-white/45">{t("era5_rainfall")}</span>
-                  <span className="font-bold text-white">{metricValue(era5.annualRainfallMm, 0)} {t("unit_mm_year")}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                  <span className="text-white/45">{t("score_version")}</span>
-                  <span className="font-mono text-xs text-primary">{copernicusSnapshot.scoreVersion}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                  <span className="flex items-center gap-1 text-white/45">
-                    <Fingerprint className="h-3.5 w-3.5" />
-                    {t("hash")}
-                  </span>
-                  <span className="font-mono text-xs text-primary">{shortHash(copernicusSnapshot.scoreHash, t("pending"))}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                  <span className="text-white/45">{t("local_proof")}</span>
-                  <span className={localProofWritten ? "font-bold text-emerald-300" : "font-bold text-yellow-200"}>
-                    {localProofWritten ? t("verified") : t("pending")}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                  <span className="text-white/45">{t("chain")}</span>
-                  <span className="font-mono text-xs text-primary">
-                    {chainLabel(chainProof.chainId)} · {chainProof.chainId}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                  <span className="text-white/45">{t("transaction")}</span>
-                  <span className="font-mono text-xs text-primary">{shortHash(chainProof.transactionHash, t("pending"))}</span>
-                </div>
-              </div>
-
-              {parsedCopernicusSnapshot ? (
-                <CopernicusCarbonCaptureCard snapshot={parsedCopernicusSnapshot} interactive />
-              ) : null}
+              <CopernicusSignalsGrid snapshot={parsedCopernicusSnapshot} />
+              <CopernicusCarbonCaptureCard snapshot={parsedCopernicusSnapshot} interactive />
 
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button

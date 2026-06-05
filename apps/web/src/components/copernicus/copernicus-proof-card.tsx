@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Fingerprint, TriangleAlert } from "lucide-react";
+import { Fingerprint } from "lucide-react";
 
 import { Badge } from "@harvverse-copernicus-hackathon/ui/components/badge";
 import { GlassCard } from "@harvverse-copernicus-hackathon/ui/components/glass-card";
@@ -49,6 +49,7 @@ export function CopernicusProofCard({ snapshot }: { snapshot: CopernicusSnapshot
           value={shortHash(snapshot.scoreHash)}
           description={t("proof_help.score_hash")}
           mono
+          copyValue={snapshot.scoreHash}
         />
         <CopernicusProofRow
           label={t("chain")}
@@ -69,6 +70,7 @@ export function CopernicusProofCard({ snapshot }: { snapshot: CopernicusSnapshot
           }
           description={t("proof_help.transaction")}
           mono={Boolean(snapshot.chain.transactionHash)}
+          copyValue={snapshot.chain.transactionHash}
         />
         <CopernicusProofRow
           label={t("confidence")}
@@ -94,16 +96,6 @@ export function CopernicusProofCard({ snapshot }: { snapshot: CopernicusSnapshot
             >
               {source.dataset}
             </Badge>
-          ))}
-        </div>
-      ) : null}
-      {snapshot.dataQuality.warnings.length > 0 ? (
-        <div className="mt-4 space-y-2 border-t border-white/5 pt-3">
-          {snapshot.dataQuality.warnings.slice(0, 3).map((warning) => (
-            <div key={warning} className="flex gap-2 text-[11px] text-yellow-200/70">
-              <TriangleAlert className="mt-0.5 size-3 shrink-0" />
-              <p>{warning}</p>
-            </div>
           ))}
         </div>
       ) : null}

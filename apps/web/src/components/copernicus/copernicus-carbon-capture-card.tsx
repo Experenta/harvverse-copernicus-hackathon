@@ -8,7 +8,7 @@ import { Button } from "@harvverse-copernicus-hackathon/ui/components/button";
 import { GlassCard } from "@harvverse-copernicus-hackathon/ui/components/glass-card";
 
 import { shortHash, metricValue, type CopernicusSnapshotView } from "@/lib/copernicus-snapshot";
-import { CopernicusMetric, CopernicusSectionHeader } from "./copernicus-ui";
+import { CopernicusMetric, CopernicusProofRow, CopernicusSectionHeader } from "./copernicus-ui";
 
 type CarbonLedgerState = {
   availableTCo2e: number;
@@ -153,9 +153,24 @@ function CarbonCaptureCardContent({
             {carbonRegistry?.ok ? "recorded" : "pending"}
           </Badge>
         </div>
-        <p className="mt-2 font-mono text-xs text-primary">
-          {carbonRegistry?.carbonHash ? shortHash(carbonRegistry.carbonHash) : "--"}
-        </p>
+        <div className="mt-2">
+          <CopernicusProofRow
+            label="Carbon hash"
+            value={carbonRegistry?.carbonHash ? shortHash(carbonRegistry.carbonHash) : "--"}
+            mono
+            copyValue={carbonRegistry?.carbonHash}
+          />
+        </div>
+        {carbonRegistry?.transactionHash ? (
+          <div className="mt-2">
+            <CopernicusProofRow
+              label="Registry tx"
+              value={shortHash(carbonRegistry.transactionHash)}
+              mono
+              copyValue={carbonRegistry.transactionHash}
+            />
+          </div>
+        ) : null}
         <p className="mt-1 text-[11px] leading-relaxed text-white/40">
           Carbon estimate hash stored in the local CarbonEstimateRegistry contract.
         </p>

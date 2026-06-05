@@ -1,7 +1,8 @@
 "use client";
 
 import type { ComponentType, ReactNode } from "react";
-import { HelpCircle } from "lucide-react";
+import { useState } from "react";
+import { Check, Copy, HelpCircle } from "lucide-react";
 
 import {
   Tooltip,
@@ -42,13 +43,35 @@ export function CopernicusMetric({
   value,
   description,
   size = "md",
+  scale,
 }: {
   icon?: ComponentType<{ className?: string }>;
   label: string;
   value: string;
   description?: string;
   size?: "sm" | "md";
+  scale?: {
+    value: number | null | undefined;
+    min: number;
+    max: number;
+    label?: string;
+    tone?: "poor" | "moderate" | "good" | "excellent";
+  };
 }) {
+  const pct =
+    scale?.value == null || !Number.isFinite(scale.value)
+      ? null
+      : Math.max(
+          0,
+          Math.min(100, ((scale.value - scale.min) / (scale.max - scale.min)) * 100),
+        );
+  const toneClass = {
+    poor: "bg-red-400",
+    moderate: "bg-yellow-300",
+    good: "bg-lime-300",
+    excellent: "bg-primary",
+  }[scale?.tone ?? "good"];
+
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 transition-colors hover:bg-white/[0.05]">
       <div className="flex items-center justify-between gap-2">
@@ -66,6 +89,20 @@ export function CopernicusMetric({
         ) : null}
       </div>
       <p className={`mt-2 font-black text-white ${size === "sm" ? "text-base" : "text-xl"}`}>{value}</p>
+      {scale ? (
+        <div className="mt-3">
+          <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+            {pct != null ? (
+              <div className={`h-full rounded-full ${toneClass}`} style={{ width: `${pct}%` }} />
+            ) : null}
+          </div>
+          <div className="mt-1 flex items-center justify-between gap-2 text-[9px] font-bold uppercase tracking-wider text-white/25">
+            <span>{scale.min}</span>
+            {scale.label ? <span className="truncate text-primary/80">{scale.label}</span> : null}
+            <span>{scale.max}</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -108,12 +145,27 @@ export function CopernicusProofRow({
   value,
   description,
   mono = false,
+  copyValue,
 }: {
   label: string;
   value: string;
   description?: string;
   mono?: boolean;
+  copyValue?: string | null;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyToClipboard() {
+    if (!copyValue || !navigator.clipboard?.writeText) return;
+    try {
+      await navigator.clipboard.writeText(copyValue);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
     <div className="group rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 transition-colors hover:bg-white/[0.05]">
       <div className="flex items-center justify-between gap-4">
@@ -128,7 +180,21 @@ export function CopernicusProofRow({
             </Tooltip>
           ) : null}
         </span>
-        <span className={`text-xs ${mono ? "font-mono text-primary" : "font-bold text-white"}`}>{value}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className={`truncate text-xs ${mono ? "font-mono text-primary" : "font-bold text-white"}`}>
+            {value}
+          </span>
+          {copyValue ? (
+            <button
+              type="button"
+              aria-label={`Copy ${label}`}
+              className="inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] text-white/35 transition-colors hover:border-primary/30 hover:text-primary"
+              onClick={() => void copyToClipboard()}
+            >
+              {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+            </button>
+          ) : null}
+        </span>
       </div>
     </div>
   );

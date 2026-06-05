@@ -102,7 +102,7 @@ const eventDescriptions: Record<z.infer<typeof eventTypeSchema>, string> = {
   "copernicus.snapshot.created": "A Copernicus snapshot was created for a lot.",
   "risk_score.ready": "Risk score and eligibility are ready for WhatsApp.",
   "eudr.non_compliant": "EUDR gate blocked a lot due to post-2020 vegetation-loss evidence.",
-  "local_proof.verified": "Local Hardhat proof was generated and verified.",
+  "local_proof.verified": "Chain proof was generated and verified.",
   "yield_predict.ready": "YieldPredict projection is ready.",
   "score.calculated": "Legacy alias: Copernicus score was calculated.",
   "eudr.blocked": "Legacy alias: EUDR gate blocked a lot.",
