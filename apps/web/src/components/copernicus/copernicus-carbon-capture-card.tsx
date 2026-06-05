@@ -95,7 +95,7 @@ function CarbonCaptureCardContent({
   const carbonRegistry = snapshot.chain.carbonRegistry;
 
   return (
-    <GlassCard className="min-w-0 overflow-hidden border-emerald-400/15 p-5">
+    <GlassCard className="min-w-0 overflow-hidden border-emerald-400/20 bg-[#001020]/40 p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           <Sprout className="size-5 text-emerald-300" />
@@ -144,7 +144,7 @@ function CarbonCaptureCardContent({
         />
       </div>
 
-      <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+      <div className="mt-3 rounded-xl border border-emerald-400/15 bg-transparent p-3">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
             On-chain carbon evidence
@@ -172,7 +172,7 @@ function CarbonCaptureCardContent({
           </div>
         ) : null}
         <p className="mt-1 text-[11px] leading-relaxed text-white/40">
-          Carbon estimate hash stored in the local CarbonEstimateRegistry contract.
+          Carbon estimate hash stored in CarbonEstimateRegistry.
         </p>
       </div>
     </GlassCard>
@@ -297,7 +297,7 @@ function CarbonCreditSimulation({
               variant="outline"
               onClick={addNextCycleEstimate}
               disabled={annualEstimate <= 0}
-              className="h-auto min-h-10 min-w-0 rounded-xl border-white/10 bg-white/[0.03] px-3 py-2 text-center text-white whitespace-normal hover:bg-white/[0.08]"
+              className="h-auto min-h-10 min-w-0 rounded-xl border-white/10 bg-transparent px-3 py-2 text-center text-white whitespace-normal hover:border-primary/25 hover:bg-primary/[0.03]"
             >
               <RefreshCw className="size-4" />
               New credit cycle

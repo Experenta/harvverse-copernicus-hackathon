@@ -42,7 +42,7 @@ export function CopernicusNdviCard({ snapshot }: { snapshot: CopernicusSnapshotV
   }
 
   return (
-    <GlassCard className="border-white/10 p-5">
+    <GlassCard className="border-primary/20 bg-[#001020]/40 p-5">
       <CopernicusSectionHeader title={t("ndvi_title")} description={t("ndvi_help")} />
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
@@ -52,7 +52,7 @@ export function CopernicusNdviCard({ snapshot }: { snapshot: CopernicusSnapshotV
             {metricValue(current, 2)}
           </p>
         </div>
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+        <div className="rounded-lg border border-white/10 bg-transparent p-3">
           <p className="text-[10px] font-bold uppercase tracking-wider text-white/45">{t("ndvi_two_year")}</p>
           <p className="mt-1 text-2xl font-black text-white">
             {average != null ? average.toFixed(2) : "—"}

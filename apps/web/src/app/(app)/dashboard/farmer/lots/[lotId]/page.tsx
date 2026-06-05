@@ -148,7 +148,7 @@ export default function FarmerLotDetailPage() {
       </div>
 
       <div className="flex flex-col gap-6">
-        <GlassCard className="overflow-hidden border-primary/20">
+        <GlassCard className="overflow-hidden border-primary/20 bg-[#001020]/40">
           <div className="flex flex-col">
             <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-5 py-4 sm:px-6">
               <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider">
@@ -180,7 +180,7 @@ export default function FarmerLotDetailPage() {
 
         <CopernicusFarmerStatusCard lot={lot} snapshotRaw={copernicusSnapshot} />
 
-        <GlassCard className="border-primary/20 p-6 sm:p-8">
+        <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8">
           <div className="mb-6 flex items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/40">
@@ -286,7 +286,7 @@ export default function FarmerLotDetailPage() {
         </GlassCard>
 
         {lot.areaManzanas != null || lot.plantAgeYears != null || lot.harvestYear != null || lot.descriptiveName != null ? (
-          <GlassCard className="border-primary/20 p-6 sm:p-8 space-y-8">
+          <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8 space-y-8">
             <div>
               <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider mb-6">{t("section_c_title")}</h2>
               <div className="grid grid-cols-2 gap-x-6 gap-y-6 text-sm sm:grid-cols-3">
@@ -460,7 +460,7 @@ export default function FarmerLotDetailPage() {
           });
           return (
             <>
-              <GlassCard className="border-primary/20 p-6 sm:p-8">
+              <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8">
                 <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider mb-6">{tLF("terms_title")}</h2>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-6 text-sm sm:grid-cols-3">
                   <div>

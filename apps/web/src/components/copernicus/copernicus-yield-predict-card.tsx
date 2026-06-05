@@ -14,7 +14,7 @@ export function CopernicusYieldPredictCard({ snapshot }: { snapshot: CopernicusS
   const yp = snapshot.yieldPredict;
 
   return (
-    <GlassCard className="border-white/10 p-5">
+    <GlassCard className="border-white/10 bg-[#001020]/40 p-5">
       <div className="flex items-center gap-2">
         <TrendingUp className="size-5 text-primary" />
         <CopernicusSectionHeader title={t("yield_title")} description={t("yield_help")} />

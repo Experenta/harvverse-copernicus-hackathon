@@ -73,7 +73,7 @@ export function CopernicusMetric({
   }[scale?.tone ?? "good"];
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 transition-colors hover:bg-white/[0.05]">
+    <div className="rounded-xl border border-white/10 bg-transparent p-3 transition-colors hover:border-primary/25 hover:bg-primary/[0.03]">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5 overflow-hidden text-white/30">
           {Icon ? <Icon className="size-3.5 shrink-0 text-primary/60" /> : null}
@@ -121,7 +121,7 @@ export function CopernicusStatusPill({
   variant?: "default" | "success" | "warning";
 }) {
   const variantStyles = {
-    default: "border-white/10 bg-white/[0.03] text-primary",
+    default: "border-white/10 bg-transparent text-primary",
     success: "border-emerald-500/20 bg-emerald-500/5 text-emerald-400",
     warning: "border-yellow-500/20 bg-yellow-500/5 text-yellow-400",
   };
@@ -167,7 +167,7 @@ export function CopernicusProofRow({
   }
 
   return (
-    <div className="group rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 transition-colors hover:bg-white/[0.05]">
+    <div className="group rounded-lg border border-white/10 bg-transparent px-3 py-2 transition-colors hover:border-primary/25 hover:bg-primary/[0.03]">
       <div className="flex items-center justify-between gap-4">
         <span className="flex items-center gap-1.5 text-[11px] font-medium text-white/40">
           {label}
@@ -188,7 +188,7 @@ export function CopernicusProofRow({
             <button
               type="button"
               aria-label={`Copy ${label}`}
-              className="inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] text-white/35 transition-colors hover:border-primary/30 hover:text-primary"
+              className="inline-flex size-6 shrink-0 items-center justify-center rounded-md border border-white/10 bg-transparent text-white/35 transition-colors hover:border-primary/30 hover:text-primary"
               onClick={() => void copyToClipboard()}
             >
               {copied ? <Check className="size-3" /> : <Copy className="size-3" />}

@@ -19,7 +19,7 @@ export function CopernicusRiskScoreCard({
   const tc = useTranslations("copernicus");
 
   return (
-    <GlassCard className={`border-primary/20 ${compact ? "p-4" : "p-5"}`}>
+    <GlassCard className={`border-primary/20 bg-[#001020]/40 ${compact ? "p-4" : "p-5"}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <CopernicusSectionHeader
@@ -51,7 +51,7 @@ export function CopernicusRiskScoreCard({
             {snapshot.variables.map((variable) => (
               <div
                 key={variable.key}
-                className="rounded-lg border border-white/10 bg-white/[0.03] p-2.5"
+                className="rounded-lg border border-white/10 bg-transparent p-2.5"
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-xs font-bold text-white">

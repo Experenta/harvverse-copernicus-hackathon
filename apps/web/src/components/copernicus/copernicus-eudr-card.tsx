@@ -22,7 +22,7 @@ export function CopernicusEudrCard({ snapshot }: { snapshot: CopernicusSnapshotV
         : t("eudr_pending");
 
   return (
-    <GlassCard className="border-white/10 p-5">
+    <GlassCard className="border-primary/20 bg-[#001020]/40 p-5">
       <CopernicusSectionHeader title={tc("eudr_title")} description={tc("eudr_help")} />
       <div className={`mt-4 rounded-xl border p-4 ${eudrBadgeTone(status)}`}>
         <div className="flex items-center gap-2">

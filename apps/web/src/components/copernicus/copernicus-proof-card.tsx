@@ -5,7 +5,6 @@ import { Fingerprint } from "lucide-react";
 
 import { Badge } from "@harvverse-copernicus-hackathon/ui/components/badge";
 import { GlassCard } from "@harvverse-copernicus-hackathon/ui/components/glass-card";
-import { Button } from "@harvverse-copernicus-hackathon/ui/components/button";
 import { chainLabel } from "@/lib/chainProof";
 import { shortHash, type CopernicusSnapshotView } from "@/lib/copernicus-snapshot";
 
@@ -25,17 +24,8 @@ export function CopernicusProofCard({ snapshot }: { snapshot: CopernicusSnapshot
     return status === "written" ? t("local_proof_verified") : t("local_proof_pending");
   }
 
-  async function copyHash() {
-    if (!snapshot.scoreHash || !navigator.clipboard?.writeText) return;
-    try {
-      await navigator.clipboard.writeText(snapshot.scoreHash);
-    } catch {
-      // Clipboard access can be blocked in non-secure or embedded browser contexts.
-    }
-  }
-
   return (
-    <GlassCard className="border-white/10 p-5">
+    <GlassCard className="border-primary/20 bg-[#001020]/40 p-5">
       <div className="flex items-center gap-2">
         <Fingerprint className="size-5 text-primary" />
         <CopernicusSectionHeader
@@ -78,15 +68,6 @@ export function CopernicusProofCard({ snapshot }: { snapshot: CopernicusSnapshot
           description={t("proof_help.confidence")}
         />
       </div>
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        className="mt-4 w-full border-white/10 text-white hover:bg-white/10"
-        onClick={() => void copyHash()}
-      >
-        {t("copy_hash")}
-      </Button>
       {snapshot.sources.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-2">
           {snapshot.sources.map((source) => (

@@ -74,7 +74,7 @@ export function CopernicusSignalsGrid({ snapshot }: { snapshot: CopernicusSnapsh
             : { label: "very high", tone: "moderate" as const };
 
   return (
-    <GlassCard className="border-white/10 p-6">
+    <GlassCard className="border-primary/20 bg-[#001020]/40 p-6">
       <CopernicusSectionHeader
         title={t("satellite_signals")}
         description={t("section_help.satellite_signals")}
