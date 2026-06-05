@@ -62,7 +62,6 @@ export default async function handler(request: Request): Promise<Response> {
 
     const inline =
       url.searchParams.get("inline") === "1" ||
-      fixtureName != null ||
       (typeof body === "object" &&
         body !== null &&
         "context" in body &&
