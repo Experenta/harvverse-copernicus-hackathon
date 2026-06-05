@@ -4,6 +4,11 @@ import "@nomicfoundation/hardhat-toolbox";
 
 const baseSepoliaRpcUrl = process.env.BASE_SEPOLIA_RPC_URL;
 const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
+const normalizedDeployerPrivateKey = deployerPrivateKey
+  ? deployerPrivateKey.startsWith("0x")
+    ? deployerPrivateKey
+    : `0x${deployerPrivateKey}`
+  : undefined;
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -16,7 +21,7 @@ const config: HardhatUserConfig = {
     hardhat: {},
     baseSepolia: {
       url: baseSepoliaRpcUrl ?? "",
-      accounts: deployerPrivateKey ? [deployerPrivateKey] : [],
+      accounts: normalizedDeployerPrivateKey ? [normalizedDeployerPrivateKey] : [],
       chainId: 84532,
     },
   },

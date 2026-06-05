@@ -19,8 +19,10 @@ import {
 } from "@harvverse-copernicus-hackathon/db/schema";
 import type { Db } from "@harvverse-copernicus-hackathon/db";
 import { env } from "@harvverse-copernicus-hackathon/env/server";
+import { HarvverseCarbonCreditAbi, HarvverseLotAbi } from "@harvverse-copernicus-hackathon/contracts";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, type SQL } from "drizzle-orm";
+import { ethers } from "ethers";
 import { z } from "zod";
 
 import { protectedProcedure, publicProcedure, router } from "../index";
@@ -153,6 +155,38 @@ type LocalChainProofResult = {
   } | null;
 };
 
+type ValidCarbonCapture = {
+  methodVersion?: string;
+  tCo2ePerHaYear: number;
+  totalTCo2ePerYear: number;
+};
+
+type OnchainLotEconomics = {
+  targetYieldTenthsQq: number;
+  priceCentsPerLb: number;
+  ticketCents: number;
+  farmerShareBps: number;
+};
+
+const CarbonEstimateRegistryAbi = [
+  {
+    inputs: [
+      { internalType: "bytes32", name: "lotId", type: "bytes32" },
+      { internalType: "bytes32", name: "scoreHash", type: "bytes32" },
+      { internalType: "bytes32", name: "carbonHash", type: "bytes32" },
+      { internalType: "uint32", name: "tCo2ePerHaYearHundredths", type: "uint32" },
+      { internalType: "uint32", name: "totalTCo2ePerYearHundredths", type: "uint32" },
+      { internalType: "uint8", name: "stateValue", type: "uint8" },
+      { internalType: "string", name: "methodVersion", type: "string" },
+      { internalType: "string", name: "evidenceUri", type: "string" },
+    ],
+    name: "recordCarbonEstimate",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
+
 function resolveRepoRoot() {
   const cwd = process.cwd();
   if (path.basename(cwd) === "web" && path.basename(path.dirname(cwd)) === "apps") {
@@ -180,6 +214,64 @@ async function resolveHardhatBin(repoRoot: string, contractsDir: string) {
   throw new Error(
     `Hardhat binary not found. Checked: ${candidates.join(", ")}`,
   );
+}
+
+function normalizePrivateKey(privateKey: string) {
+  return privateKey.startsWith("0x") ? privateKey : `0x${privateKey}`;
+}
+
+function toBytes32Hash(hash: string) {
+  const normalized = hash.startsWith("0x") ? hash : `0x${hash}`;
+  if (!/^0x[0-9a-fA-F]{64}$/.test(normalized)) {
+    throw new Error(`scoreHash must be a 32-byte hex string, received: ${hash}`);
+  }
+  return normalized as `0x${string}`;
+}
+
+function isPositiveFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function carbonCaptureFromSnapshot(
+  snapshot: typeof copernicusSnapshots.$inferSelect,
+): ValidCarbonCapture | null {
+  const signedPayload = asRecord(snapshot.signedPayload);
+  const signedPayloadBody = asRecord(signedPayload.payload);
+  const raw = asRecord(signedPayloadBody.carbonCapture);
+
+  if (
+    !isPositiveFiniteNumber(raw.tCo2ePerHaYear) ||
+    !isPositiveFiniteNumber(raw.totalTCo2ePerYear)
+  ) {
+    return null;
+  }
+
+  return {
+    methodVersion:
+      typeof raw.methodVersion === "string" ? raw.methodVersion : undefined,
+    tCo2ePerHaYear: raw.tCo2ePerHaYear,
+    totalTCo2ePerYear: raw.totalTCo2ePerYear,
+  };
+}
+
+function toHundredths(value: number) {
+  return Math.round(value * 100);
+}
+
+function resolveEnvAddress(name: string, ...values: Array<string | undefined>) {
+  const address = values.find((value) => value && value.trim());
+  if (!address || !ethers.isAddress(address)) {
+    throw new Error(`${name} must be configured as a valid EVM address.`);
+  }
+  return address as `0x${string}`;
+}
+
+function getSnapshotYieldTenths(snapshot: typeof copernicusSnapshots.$inferSelect) {
+  const signedPayload = asRecord(snapshot.signedPayload);
+  const payload = asRecord(signedPayload.payload);
+  const yieldPredict = asRecord(payload.yieldPredict);
+  const projected = yieldPredict.projectedQq;
+  return isPositiveFiniteNumber(projected) ? Math.round(projected * 10) : 600;
 }
 
 function planToLotEconomics(plan: typeof plans.$inferSelect): LotPlanEconomics {
@@ -387,6 +479,128 @@ async function runLocalCopernicusVerifier(
   } finally {
     await rm(tempDir, { force: true, recursive: true });
   }
+}
+
+async function runBaseSepoliaCopernicusWriter({
+  snapshot,
+  lot,
+  lotCode,
+  economics,
+}: {
+  snapshot: typeof copernicusSnapshots.$inferSelect;
+  lot: typeof lots.$inferSelect;
+  lotCode: string;
+  economics: OnchainLotEconomics;
+}): Promise<LocalChainProofResult> {
+  if (!env.BASE_SEPOLIA_RPC_URL || !env.DEPLOYER_PRIVATE_KEY) {
+    throw new Error("BASE_SEPOLIA_RPC_URL and DEPLOYER_PRIVATE_KEY are required.");
+  }
+
+  const provider = new ethers.JsonRpcProvider(env.BASE_SEPOLIA_RPC_URL);
+  const wallet = new ethers.Wallet(normalizePrivateKey(env.DEPLOYER_PRIVATE_KEY), provider);
+  const lotAddress = resolveEnvAddress(
+    "HARVVERSE_LOT_ADDRESS",
+    env.HARVVERSE_LOT_ADDRESS,
+    process.env.NEXT_PUBLIC_LOT_ADDRESS,
+  );
+  const lotContract = new ethers.Contract(lotAddress, HarvverseLotAbi, wallet);
+  const chain = await provider.getNetwork();
+  const chainId = Number(chain.chainId);
+  const lotId = ethers.keccak256(ethers.toUtf8Bytes(lotCode)) as `0x${string}`;
+  const scoreHash = toBytes32Hash(snapshot.scoreHash);
+  const eudrCompliant = snapshot.eudrStatus === "verified";
+  const farmerWallet = lot.farmerWallet && ethers.isAddress(lot.farmerWallet)
+    ? lot.farmerWallet
+    : wallet.address;
+
+  const existingLot = await lotContract.getLot(lotId);
+  if (Number(existingLot.createdAt) === 0) {
+    const createTx = await lotContract.createLot(
+      lotId,
+      farmerWallet,
+      economics.targetYieldTenthsQq,
+      economics.priceCentsPerLb,
+      economics.ticketCents,
+      economics.farmerShareBps,
+    );
+    await createTx.wait();
+  }
+
+  const tx = await lotContract.updateCopernicusScore(
+    lotId,
+    snapshot.riskScore,
+    eudrCompliant,
+    scoreHash,
+    snapshot.scoreVersion,
+  );
+  const receipt = await tx.wait();
+
+  const carbonCapture = carbonCaptureFromSnapshot(snapshot);
+  const carbonHash =
+    carbonCapture == null
+      ? null
+      : (ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(carbonCapture))) as `0x${string}`);
+  const carbonRegistry =
+    carbonCapture == null || carbonHash == null
+      ? null
+      : await (async () => {
+          const registryAddress = resolveEnvAddress(
+            "CARBON_REGISTRY_ADDRESS",
+            env.CARBON_REGISTRY_ADDRESS,
+            process.env.NEXT_PUBLIC_CARBON_REGISTRY_ADDRESS,
+          );
+          const creditAddress = resolveEnvAddress(
+            "CARBON_CREDIT_ADDRESS",
+            env.CARBON_CREDIT_ADDRESS,
+            process.env.NEXT_PUBLIC_CARBON_CREDIT_ADDRESS,
+          );
+          const methodVersion = carbonCapture.methodVersion ?? "carbon-screening-v0.1.0";
+          const tCo2ePerHaYearHundredths = toHundredths(carbonCapture.tCo2ePerHaYear);
+          const totalTCo2ePerYearHundredths = toHundredths(carbonCapture.totalTCo2ePerYear);
+          const evidenceUri = `harvverse://copernicus/${lotCode}/carbon`;
+          const registry = new ethers.Contract(registryAddress, CarbonEstimateRegistryAbi, wallet);
+          const registryTx = await registry.recordCarbonEstimate(
+            lotId,
+            scoreHash,
+            carbonHash,
+            tCo2ePerHaYearHundredths,
+            totalTCo2ePerYearHundredths,
+            0,
+            methodVersion,
+            evidenceUri,
+          );
+          const registryReceipt = await registryTx.wait();
+          const credit = new ethers.Contract(creditAddress, HarvverseCarbonCreditAbi, wallet);
+          const creditTx = await credit.issueCredit(
+            lotId,
+            farmerWallet,
+            scoreHash,
+            carbonHash,
+            totalTCo2ePerYearHundredths,
+            evidenceUri,
+          );
+          await creditTx.wait();
+
+          return {
+            ok: true,
+            contractAddress: registryAddress,
+            transactionHash: registryReceipt?.hash ?? registryTx.hash,
+            carbonHash,
+            tCo2ePerHaYearHundredths,
+            totalTCo2ePerYearHundredths,
+            state: "estimate_recorded",
+            methodVersion,
+          };
+        })();
+
+  return {
+    ok: true,
+    chainId,
+    contractAddress: lotAddress,
+    transactionHash: receipt?.hash ?? tx.hash,
+    lotId,
+    carbonRegistry,
+  };
 }
 
 function toPublicLot(lot: PublicLotRecord) {
@@ -742,13 +956,36 @@ export const lotsRouter = router({
 
       const existingChain = asRecord(snapshot.chain);
       const lotCode = lot.code ?? `LOT-${lot.id}`;
-      const proof = await runLocalCopernicusVerifier(snapshot, lotCode).catch(
+      const planEconomics = await getLotPlanEconomics(ctx.db, lot);
+      const onchainEconomics: OnchainLotEconomics = {
+        targetYieldTenthsQq: getSnapshotYieldTenths(snapshot),
+        priceCentsPerLb:
+          planEconomics?.marketPriceCentsPerLb ??
+          planEconomics?.floorPriceCentsPerLb ??
+          350,
+        ticketCents: planEconomics?.investmentTicketCents ?? 342500,
+        farmerShareBps: planEconomics?.farmerShareBps ?? 6000,
+      };
+      const useBaseSepolia =
+        process.env.NEXT_PUBLIC_USE_LOCAL_CONTRACTS !== "true" &&
+        Boolean(env.BASE_SEPOLIA_RPC_URL && env.DEPLOYER_PRIVATE_KEY);
+      const proof = await (useBaseSepolia
+        ? runBaseSepoliaCopernicusWriter({
+            snapshot,
+            lot,
+            lotCode,
+            economics: onchainEconomics,
+          })
+        : runLocalCopernicusVerifier(snapshot, lotCode)
+      ).catch(
         (error: unknown) => {
           const details =
-            error instanceof Error ? error.message : "Local Hardhat verifier failed.";
+            error instanceof Error ? error.message : "Copernicus chain writer failed.";
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: `Local Hardhat proof failed: ${details}`,
+            message: useBaseSepolia
+              ? `Base Sepolia proof failed: ${details}`
+              : `Local Hardhat proof failed: ${details}`,
           });
         },
       );
@@ -760,7 +997,7 @@ export const lotsRouter = router({
           proof.contractAddress ?? env.HARVVERSE_LOT_ADDRESS ?? existingChain.contractAddress ?? null,
         transactionHash: proof.transactionHash,
         metadataStatus: "written",
-        proofMode: "local-hardhat-in-memory",
+        proofMode: useBaseSepolia ? "base-sepolia" : "local-hardhat-in-memory",
         lotId: proof.lotId,
         carbonRegistry: proof.carbonRegistry ?? existingChain.carbonRegistry ?? null,
         verifiedAt: now.toISOString(),

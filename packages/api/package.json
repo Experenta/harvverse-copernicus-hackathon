@@ -11,12 +11,14 @@
   },
   "scripts": {},
   "dependencies": {
+    "@harvverse-copernicus-hackathon/contracts": "workspace:*",
     "@harvverse-copernicus-hackathon/db": "workspace:*",
     "@harvverse-copernicus-hackathon/env": "workspace:*",
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.1",
+    "ethers": "^6.16.0",
     "next": "catalog:",
     "zod": "catalog:"
   },

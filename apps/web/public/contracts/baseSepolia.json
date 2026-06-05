@@ -1,0 +1,14 @@
+{
+  "chainId": 84532,
+  "network": "baseSepolia",
+  "deployer": "0x686EE65b45Aa460CbAE7e53AAE91B481a73ed63f",
+  "contracts": {
+    "mockUsdc": "0x4F1b83f99382EE10e3191f14d7e011D13DdB9E44",
+    "harvverseLot": "0xc61D150cF924054d564183B53E35f546C676A0F9",
+    "harvversePartnership": "0x4aFBB4F2737E739B833E99C7a6b3d3dEd7fbB39c",
+    "harvverseEvidence": "0x5Cfb45ed81b805063030B446515Bc240Ec32fa0e",
+    "carbonEstimateRegistry": "0xFE2fD8ae12c908902074Ed57bb76E8DBd8382919",
+    "harvverseCarbonCredit": "0xBde7B9D6DB0b71Ac8A40F2c10a84A3389B9D2F1B"
+  },
+  "demoPartnerWallet": "0x686EE65b45Aa460CbAE7e53AAE91B481a73ed63f"
+}
