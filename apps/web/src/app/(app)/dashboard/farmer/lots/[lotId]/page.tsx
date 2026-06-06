@@ -186,6 +186,105 @@ export default function FarmerLotDetailPage() {
   const chainProof = getSnapshotChain(copernicusSnapshot);
   const localProofWritten = isCurrentDeploymentProof(chainProof);
 
+  function renderLotTermsCard() {
+    if (!activePlan) return null;
+
+    const farmerSharePct = (activePlan.splitFarmerBps ?? 0) / 100;
+    const partnerSharePct = (activePlan.splitPartnerBps ?? 0) / 100;
+    const projectedY1Qq = (activePlan.projectedYieldY1TenthsQq ?? 0) / 10;
+    const matureYieldQq =
+      parsedCopernicusSnapshot?.yieldPredict.projectedQuintales ??
+      (activePlan.yieldCapY1TenthsQq ?? activePlan.projectedYieldY1TenthsQq ?? 0) / 10;
+
+    return (
+      <GlassCard className="border-primary/20 bg-[#001020]/40 p-5 sm:p-6">
+        <h2 className="mb-4 font-trenda text-sm font-bold uppercase tracking-wider text-white">
+          {tLF("terms_title")}
+        </h2>
+        <div className="mb-5 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-white/40">
+              {tLF("yield_y1_establishment")}
+            </p>
+            <p className="text-xl font-black text-white">{projectedY1Qq.toFixed(1)} qq</p>
+          </div>
+          <div className="rounded-lg border border-primary/25 bg-primary/10 p-3">
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-primary">
+              {tLF("yield_mature_potential")}
+            </p>
+            <p className="text-xl font-black text-primary">{matureYieldQq.toFixed(1)} qq</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm sm:grid-cols-3">
+          <div>
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-white/40">{tLF("terms_ticket")}</p>
+            <p className="font-bold text-primary">{formatUsdFromCents(activePlan.ticketCents)}</p>
+          </div>
+          <div>
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-white/40">{tLF("terms_price")}</p>
+            <p className="font-bold text-white">{formatUsdFromCents(activePlan.priceCentsPerLb)}/lb</p>
+          </div>
+          {activePlan.priceFloorCentsPerLb != null ? (
+            <div>
+              <p className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-wider text-white/40">
+                {tLF("terms_price_floor")}
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-3 w-3 cursor-help text-white/35" />
+                  </TooltipTrigger>
+                  <TooltipContent>{tLF("tooltip_price_floor")}</TooltipContent>
+                </Tooltip>
+              </p>
+              <p className="font-bold text-white">{formatUsdFromCents(activePlan.priceFloorCentsPerLb)}/lb</p>
+            </div>
+          ) : null}
+          {activePlan.agronomicCostCents != null ? (
+            <div>
+              <p className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-wider text-white/40">
+                {tLF("terms_agro_cost")}
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-3 w-3 cursor-help text-white/35" />
+                  </TooltipTrigger>
+                  <TooltipContent>{tLF("tooltip_agro_cost")}</TooltipContent>
+                </Tooltip>
+              </p>
+              <p className="font-bold text-white">{formatUsdFromCents(activePlan.agronomicCostCents)}</p>
+            </div>
+          ) : null}
+          {activePlan.projectedYieldY1TenthsQq != null ? (
+            <div>
+              <p className="mb-1 flex items-center gap-1 text-[10px] uppercase tracking-wider text-white/40">
+                {tLF("terms_yield")}
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-3 w-3 cursor-help text-white/35" />
+                  </TooltipTrigger>
+                  <TooltipContent>{tLF("tooltip_quintal")}</TooltipContent>
+                </Tooltip>
+              </p>
+              <p className="font-bold text-white">{projectedY1Qq.toFixed(1)} qq</p>
+            </div>
+          ) : null}
+          {activePlan.yieldCapY1TenthsQq != null ? (
+            <div>
+              <p className="mb-1 text-[10px] uppercase tracking-wider text-white/40">{tLF("terms_yield_cap")}</p>
+              <p className="font-bold text-white">{(activePlan.yieldCapY1TenthsQq / 10).toFixed(1)} qq</p>
+            </div>
+          ) : null}
+          <div>
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-white/40">{tLF("terms_farmer_share")}</p>
+            <p className="font-bold text-white">{farmerSharePct.toFixed(1)}%</p>
+          </div>
+          <div>
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-white/40">{tLF("terms_partner_share")}</p>
+            <p className="font-bold text-white">{partnerSharePct.toFixed(1)}%</p>
+          </div>
+        </div>
+      </GlassCard>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 md:px-0 text-[#EEEEEE]">
       <Button
@@ -276,6 +375,7 @@ export default function FarmerLotDetailPage() {
                 <div className="flex flex-col gap-4">
                   <CopernicusRiskScoreCard snapshot={parsedCopernicusSnapshot} />
                   <LotAgronomicNotes lot={lot} t={t} />
+                  {renderLotTermsCard()}
                 </div>
                 <div className="flex flex-col gap-4">
                   <CopernicusYieldPredictCard snapshot={parsedCopernicusSnapshot} />
@@ -396,90 +496,6 @@ export default function FarmerLotDetailPage() {
           });
           return (
             <>
-              <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8">
-                <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider mb-6">{tLF("terms_title")}</h2>
-                <div className="mb-6 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
-                      {tLF("yield_y1_establishment")}
-                    </p>
-                    <p className="text-white font-black text-xl">{projectedY1Qq.toFixed(1)} qq</p>
-                  </div>
-                  <div className="rounded-lg border border-primary/25 bg-primary/10 p-3">
-                    <p className="text-primary text-[10px] uppercase tracking-wider mb-1">
-                      {tLF("yield_mature_potential")}
-                    </p>
-                    <p className="text-primary font-black text-xl">{matureYieldQq.toFixed(1)} qq</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-6 text-sm sm:grid-cols-3">
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{tLF("terms_ticket")}</p>
-                    <p className="text-white font-bold text-primary">{formatUsdFromCents(activePlan.ticketCents)}</p>
-                  </div>
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{tLF("terms_price")}</p>
-                    <p className="text-white font-bold">{formatUsdFromCents(activePlan.priceCentsPerLb)}/lb</p>
-                  </div>
-                  {activePlan.priceFloorCentsPerLb != null && (
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1 flex items-center gap-1">
-                        {tLF("terms_price_floor")}
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <HelpCircle className="h-3 w-3 text-white/35 cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>{tLF("tooltip_price_floor")}</TooltipContent>
-                        </Tooltip>
-                      </p>
-                      <p className="text-white font-bold">{formatUsdFromCents(activePlan.priceFloorCentsPerLb)}/lb</p>
-                    </div>
-                  )}
-                  {activePlan.agronomicCostCents != null && (
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1 flex items-center gap-1">
-                        {tLF("terms_agro_cost")}
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <HelpCircle className="h-3 w-3 text-white/35 cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>{tLF("tooltip_agro_cost")}</TooltipContent>
-                        </Tooltip>
-                      </p>
-                      <p className="text-white font-bold">{formatUsdFromCents(activePlan.agronomicCostCents)}</p>
-                    </div>
-                  )}
-                  {activePlan.projectedYieldY1TenthsQq != null && (
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1 flex items-center gap-1">
-                        {tLF("terms_yield")}
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <HelpCircle className="h-3 w-3 text-white/35 cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>{tLF("tooltip_quintal")}</TooltipContent>
-                        </Tooltip>
-                      </p>
-                      <p className="text-white font-bold">{(activePlan.projectedYieldY1TenthsQq / 10).toFixed(1)} qq</p>
-                    </div>
-                  )}
-                  {activePlan.yieldCapY1TenthsQq != null && (
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{tLF("terms_yield_cap")}</p>
-                      <p className="text-white font-bold">{(activePlan.yieldCapY1TenthsQq / 10).toFixed(1)} qq</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{tLF("terms_farmer_share")}</p>
-                    <p className="text-white font-bold">{farmerSharePct.toFixed(1)}%</p>
-                  </div>
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{tLF("terms_partner_share")}</p>
-                    <p className="text-white font-bold">{partnerSharePct.toFixed(1)}%</p>
-                  </div>
-                </div>
-              </GlassCard>
-
               <GlassCard className="border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
                 <h2 className="font-trenda text-base font-bold text-emerald-400 uppercase tracking-wider mb-6">{tLF("earnings_title")}</h2>
                 <div className="space-y-4 text-sm">
