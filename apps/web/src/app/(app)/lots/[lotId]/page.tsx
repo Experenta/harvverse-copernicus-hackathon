@@ -7,6 +7,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Polygon } from "geojson";
 import { useTranslations } from "next-intl";
+import { waitForTransactionReceipt } from "wagmi/actions";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -38,7 +39,8 @@ import {
   DialogFooter,
 } from "@harvverse-copernicus-hackathon/ui/components/dialog";
 
-import { useAccount, useConnect } from "wagmi";
+import { useAccount, useConnect, useWriteContract } from "wagmi";
+import { MockUSDCAbi } from "@harvverse-copernicus-hackathon/contracts";
 
 import { formatUsdFromCents } from "@/lib/format";
 import { getSnapshotChain } from "@/lib/chainProof";
@@ -151,9 +153,13 @@ export default function LotDetailPage() {
   const { data: user, clerkUser } = useCurrentUser();
   const { address } = useAccount();
   const { connect, isPending: isConnecting } = useConnect();
+  const { writeContractAsync } = useWriteContract();
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [partnerMessage, setPartnerMessage] = useState("");
+  const [isMintingUsdc, setIsMintingUsdc] = useState(false);
+  const [mintUsdcError, setMintUsdcError] = useState<string | null>(null);
+  const [mintUsdcTxHash, setMintUsdcTxHash] = useState<string | null>(null);
   const { data: lot, isLoading, isError } = useQuery(
     trpc.lots.byId.queryOptions(
       { id: lotId },
@@ -273,6 +279,34 @@ export default function LotDetailPage() {
     });
     setRequestDialogOpen(false);
     setPartnerMessage("");
+  }
+
+  async function handleMintMockUsdc() {
+    if (!address || !activePlan) return;
+    const usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}` | undefined;
+    if (!usdcAddress) {
+      setMintUsdcError("MockUSDC contract is not configured.");
+      return;
+    }
+
+    setIsMintingUsdc(true);
+    setMintUsdcError(null);
+    setMintUsdcTxHash(null);
+    try {
+      const amount = BigInt(activePlan.ticketCents) * BigInt(10000);
+      const tx = await writeContractAsync({
+        address: usdcAddress,
+        abi: MockUSDCAbi,
+        functionName: "mint",
+        args: [address, amount],
+      });
+      setMintUsdcTxHash(tx);
+      await waitForTransactionReceipt(wagmiConfig, { hash: tx });
+    } catch (error) {
+      setMintUsdcError(error instanceof Error ? error.message : "Could not mint MockUSDC.");
+    } finally {
+      setIsMintingUsdc(false);
+    }
   }
 
   function renderProposalButton() {
@@ -425,7 +459,7 @@ export default function LotDetailPage() {
               return (
                 <>
                   {displayPolygon ? (
-                    <div className="mb-4 overflow-hidden rounded-2xl border border-white/10">
+                    <div className="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-[#001020]/40">
                       <div className="relative h-[280px] w-full md:h-[360px]">
                         <PolygonDisplayMap
                           polygon={displayPolygon}
@@ -438,7 +472,7 @@ export default function LotDetailPage() {
                         />
                       </div>
                       {!lotPolygon && farmPolygon ? (
-                        <p className="border-t border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-[#67B9C1]">
+                        <p className="border-t border-white/10 bg-transparent px-3 py-2 text-xs text-[#67B9C1]">
                           {t("polygon_fallback")}
                         </p>
                       ) : null}
@@ -493,13 +527,13 @@ export default function LotDetailPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <GlassCard className="border-primary/20 bg-white/5 p-4 flex flex-col items-center text-center group hover:bg-white/10 transition-colors">
+              <GlassCard className="border-primary/20 bg-[#001020]/40 p-4 flex flex-col items-center text-center group hover:border-primary/35 transition-colors">
                 <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1">{t("ticket")}</p>
                 <p className="text-xl font-bold text-primary">
                   {activePlan ? formatUsdFromCents(activePlan.ticketCents) : "--"}
                 </p>
               </GlassCard>
-              <GlassCard className="border-primary/20 bg-white/5 p-4 flex flex-col items-center text-center group hover:bg-white/10 transition-colors">
+              <GlassCard className="border-primary/20 bg-[#001020]/40 p-4 flex flex-col items-center text-center group hover:border-primary/35 transition-colors">
                 <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1">{t("partner_split_pct")}</p>
                 <p className="text-xl font-bold text-white">
                   {activePlan?.splitPartnerBps
@@ -507,7 +541,7 @@ export default function LotDetailPage() {
                     : "--"}
                 </p>
               </GlassCard>
-              <GlassCard className="border-primary/20 bg-white/5 p-4 flex flex-col items-center text-center sm:col-span-2 lg:col-span-1 group hover:bg-white/10 transition-colors">
+              <GlassCard className="border-primary/20 bg-[#001020]/40 p-4 flex flex-col items-center text-center sm:col-span-2 lg:col-span-1 group hover:border-primary/35 transition-colors">
                 <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1">{t("altitude")}</p>
                 <p className="text-xl font-bold text-white">
                   {lot.altitudeMasl ? `${lot.altitudeMasl}m` : "--"}
@@ -516,51 +550,51 @@ export default function LotDetailPage() {
             </div>
           </div>
 
-          <GlassCard className="mb-6 p-6 md:p-8 border-primary/20">
+          <GlassCard className="mb-6 border-primary/20 bg-[#001020]/40 p-6 md:p-8">
             <h2 className="section-title mb-6 uppercase text-sm tracking-widest font-bold text-primary">{t("plan_terms")}</h2>
             {activePlan ? (
               <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                  <div className="rounded-lg border border-white/10 bg-transparent p-3">
                     <dt className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("plan_code")}</dt>
                     <dd className="text-white font-medium">{activePlan.planCode}</dd>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                  <div className="rounded-lg border border-white/10 bg-transparent p-3">
                     <dt className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("ticket")}</dt>
                     <dd className="text-primary font-black text-lg">
                       {formatUsdFromCents(activePlan.ticketCents)}
                     </dd>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                  <div className="rounded-lg border border-white/10 bg-transparent p-3">
                     <dt className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("price_per_lb")}</dt>
                     <dd className="text-white font-medium">
                       {formatUsdFromCents(activePlan.priceCentsPerLb)}
                     </dd>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                  <div className="rounded-lg border border-white/10 bg-transparent p-3">
                     <dt className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("floor_per_lb")}</dt>
                     <dd className="text-white font-medium">
                       {formatUsdFromCents(activePlan.priceFloorCentsPerLb)}
                     </dd>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                  <div className="rounded-lg border border-white/10 bg-transparent p-3">
                     <dt className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("proj_yield_y1")}</dt>
                     <dd className="text-white font-medium">
                       {(activePlan.projectedYieldY1TenthsQq / 10).toFixed(1)} qq
                     </dd>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                  <div className="rounded-lg border border-white/10 bg-transparent p-3">
                     <dt className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("yield_cap_y1")}</dt>
                     <dd className="text-white font-medium">
                       {(activePlan.yieldCapY1TenthsQq / 10).toFixed(1)} qq
                     </dd>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                  <div className="rounded-lg border border-white/10 bg-transparent p-3">
                     <dt className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("farmer_split_pct")}</dt>
                     <dd className="text-white font-medium">
                       {activePlan.splitFarmerBps / 100}%
                     </dd>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                  <div className="rounded-lg border border-white/10 bg-transparent p-3">
                     <dt className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("partner_split_pct")}</dt>
                     <dd className="text-white font-medium">
                       {activePlan.splitPartnerBps
@@ -574,7 +608,7 @@ export default function LotDetailPage() {
               )}
           </GlassCard>
 
-          <GlassCard className="mb-8 border-primary/20 p-6 md:p-8">
+          <GlassCard className="mb-8 border-primary/20 bg-[#001020]/40 p-6 md:p-8">
             <CopernicusPartnerPanel
               snapshotRaw={copernicusSnapshot}
               lotCode={lot.code}
@@ -587,7 +621,7 @@ export default function LotDetailPage() {
             />
           </GlassCard>
 
-          <GlassCard className="p-6 border-primary/25 bg-primary/5">
+          <GlassCard className="border-primary/25 bg-primary/5 p-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="section-title">{t("reserve_partnership")}</h2>
@@ -640,13 +674,13 @@ export default function LotDetailPage() {
 
               {activePlan && projections && (
                 <div className="grid grid-cols-2 gap-3 text-sm my-2">
-                  <div className="bg-white/5 rounded-lg p-3">
+                  <div className="rounded-lg border border-white/10 bg-transparent p-3">
                     <p className="text-white/60 text-xs mb-1">{tp("your_ticket")}</p>
                     <p className="font-bold text-primary text-lg">
                       {formatUsdFromCents(activePlan.ticketCents)}
                     </p>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-3">
+                  <div className="rounded-lg border border-white/10 bg-transparent p-3">
                     <p className="text-white/60 text-xs mb-1">{tp("projected_return")}</p>
                     <p className="font-bold text-white text-lg">
                       {formatUsdFromCents(activePlan.ticketCents + projections.partnerCents)}
@@ -705,13 +739,13 @@ export default function LotDetailPage() {
 
                 <div className="space-y-4 py-2">
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="bg-white/5 rounded-lg p-3">
+                    <div className="rounded-lg border border-white/10 bg-transparent p-3">
                       <p className="text-white/60 text-xs mb-1">{tp("your_ticket")}</p>
                       <p className="font-bold text-primary text-lg">
                         {formatUsdFromCents(activePlan.ticketCents)}
                       </p>
                     </div>
-                    <div className="bg-white/5 rounded-lg p-3">
+                    <div className="rounded-lg border border-white/10 bg-transparent p-3">
                       <p className="text-white/60 text-xs mb-1">{tp("projected_return")}</p>
                       <p className="font-bold text-white text-lg">
                         {formatUsdFromCents(activePlan.ticketCents + projections.partnerCents)}
@@ -720,7 +754,7 @@ export default function LotDetailPage() {
                   </div>
 
                   {reserve.step !== "idle" && (
-                    <div className="bg-white/5 rounded-lg p-3 space-y-2">
+                    <div className="rounded-lg border border-white/10 bg-transparent p-3 space-y-2">
                       <StepRow
                         label={tp("approve_usdc")}
                         active={reserve.step === "approving"}
@@ -751,6 +785,44 @@ export default function LotDetailPage() {
                       tx: {reserve.txHash}
                     </p>
                   )}
+
+                  {address ? (
+                    <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/5 p-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-emerald-200">
+                            {tp("mock_usdc_title")}
+                          </p>
+                          <p className="mt-1 text-[11px] leading-relaxed text-white/45">
+                            {tp("mock_usdc_desc")}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0 border-emerald-300/25 text-emerald-200 hover:bg-emerald-300/10"
+                          disabled={isMintingUsdc || reserve.isLoading}
+                          onClick={() => void handleMintMockUsdc()}
+                        >
+                          {isMintingUsdc ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : null}
+                          {tp("mint_mock_usdc")}
+                        </Button>
+                      </div>
+                      {mintUsdcTxHash ? (
+                        <p className="mt-2 truncate font-mono text-[11px] text-emerald-100/60">
+                          tx: {mintUsdcTxHash}
+                        </p>
+                      ) : null}
+                      {mintUsdcError ? (
+                        <p className="mt-2 text-[11px] leading-relaxed text-red-300">
+                          {mintUsdcError}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <p className="text-xs text-white/45 leading-relaxed break-words">
                     {tp("disclaimer")}
