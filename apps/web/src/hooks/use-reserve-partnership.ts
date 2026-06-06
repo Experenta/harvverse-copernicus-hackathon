@@ -72,6 +72,12 @@ export function useReservePartnership(params: {
 
   const usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}` | undefined;
   const partnershipContractAddress = process.env.NEXT_PUBLIC_PARTNERSHIP_ADDRESS as `0x${string}` | undefined;
+  const expectedChainId =
+    process.env.NEXT_PUBLIC_USE_LOCAL_CONTRACTS === "true"
+      ? Number(process.env.NEXT_PUBLIC_HARDHAT_CHAIN_ID ?? 31337)
+      : 84532;
+  const expectedNetwork =
+    expectedChainId === 84532 ? "Base Sepolia" : `chain ${expectedChainId}`;
 
   const effectiveWallet = address ?? null;
 
@@ -91,6 +97,11 @@ export function useReservePartnership(params: {
       setStep("error");
       return;
     }
+    if (chainId !== expectedChainId) {
+      setError(`Switch MetaMask to ${expectedNetwork} before confirming the investment.`);
+      setStep("error");
+      return;
+    }
 
     setStep("approving");
     setError(null);
@@ -107,7 +118,10 @@ export function useReservePartnership(params: {
         args: [partnershipContractAddress, ticketUsdcUnits],
       });
       setTxHash(approveTx);
-      await waitForTransactionReceipt(wagmiConfig, { hash: approveTx });
+      const approveReceipt = await waitForTransactionReceipt(wagmiConfig, { hash: approveTx });
+      if (approveReceipt.status !== "success") {
+        throw new Error("USDC approval transaction reverted. Check wallet gas, network, and contract addresses.");
+      }
       setStep("approved");
 
       // 2 — Call invest() on HarvversePartnership
@@ -129,7 +143,10 @@ export function useReservePartnership(params: {
         args: [onchainPartnershipId, onchainLotId, activePlan.ticketCents],
       });
       setTxHash(investTx);
-      await waitForTransactionReceipt(wagmiConfig, { hash: investTx });
+      const investReceipt = await waitForTransactionReceipt(wagmiConfig, { hash: investTx });
+      if (investReceipt.status !== "success") {
+        throw new Error("Partnership transaction reverted. Check wallet gas, network, and contract addresses.");
+      }
       setStep("confirmed");
 
       // 3 — Persist to DB: proposal → partnership → lot status
@@ -218,6 +235,8 @@ export function useReservePartnership(params: {
     partnershipContractAddress,
     effectiveWallet,
     chainId,
+    expectedChainId,
+    expectedNetwork,
     existingProposalId,
     writeContractAsync,
     createProposal,

@@ -39,7 +39,7 @@ import {
   DialogFooter,
 } from "@harvverse-copernicus-hackathon/ui/components/dialog";
 
-import { useAccount, useConnect, useWriteContract } from "wagmi";
+import { useAccount, useChainId, useConnect, useWriteContract } from "wagmi";
 import { MockUSDCAbi } from "@harvverse-copernicus-hackathon/contracts";
 
 import { formatUsdFromCents } from "@/lib/format";
@@ -152,6 +152,7 @@ export default function LotDetailPage() {
 
   const { data: user, clerkUser } = useCurrentUser();
   const { address } = useAccount();
+  const chainId = useChainId();
   const { connect, isPending: isConnecting } = useConnect();
   const { writeContractAsync } = useWriteContract();
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
@@ -284,8 +285,18 @@ export default function LotDetailPage() {
   async function handleMintMockUsdc() {
     if (!address || !activePlan) return;
     const usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}` | undefined;
+    const expectedChainId =
+      process.env.NEXT_PUBLIC_USE_LOCAL_CONTRACTS === "true"
+        ? Number(process.env.NEXT_PUBLIC_HARDHAT_CHAIN_ID ?? 31337)
+        : 84532;
+    const expectedNetwork =
+      expectedChainId === 84532 ? "Base Sepolia" : `chain ${expectedChainId}`;
     if (!usdcAddress) {
       setMintUsdcError("MockUSDC contract is not configured.");
+      return;
+    }
+    if (chainId !== expectedChainId) {
+      setMintUsdcError(`Switch MetaMask to ${expectedNetwork} before minting test USDC.`);
       return;
     }
 
@@ -301,7 +312,10 @@ export default function LotDetailPage() {
         args: [address, amount],
       });
       setMintUsdcTxHash(tx);
-      await waitForTransactionReceipt(wagmiConfig, { hash: tx });
+      const receipt = await waitForTransactionReceipt(wagmiConfig, { hash: tx });
+      if (receipt.status !== "success") {
+        throw new Error("MockUSDC mint transaction reverted. Check gas and contract address.");
+      }
     } catch (error) {
       setMintUsdcError(error instanceof Error ? error.message : "Could not mint MockUSDC.");
     } finally {
@@ -811,6 +825,9 @@ export default function LotDetailPage() {
                           {tp("mint_mock_usdc")}
                         </Button>
                       </div>
+                      <p className="mt-2 break-all font-mono text-[10px] text-white/35">
+                        {chainId === 84532 ? "Base Sepolia" : `chain ${chainId}`} · {shortHash(process.env.NEXT_PUBLIC_USDC_ADDRESS)}
+                      </p>
                       {mintUsdcTxHash ? (
                         <p className="mt-2 truncate font-mono text-[11px] text-emerald-100/60">
                           tx: {mintUsdcTxHash}
