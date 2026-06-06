@@ -310,6 +310,7 @@ export default function LotDetailPage() {
         abi: MockUSDCAbi,
         functionName: "mint",
         args: [address, amount],
+        gas: BigInt(90_000),
       });
       setMintUsdcTxHash(tx);
       const receipt = await waitForTransactionReceipt(wagmiConfig, { hash: tx });
@@ -741,9 +742,9 @@ export default function LotDetailPage() {
           {/* Wallet confirm dialog — shown after farmer approval */}
           {activePlan && projections && (
             <Dialog open={confirmDialogOpen} onOpenChange={(open) => { setConfirmDialogOpen(open); }}>
-              <DialogContent className="bg-[#001020] border border-white/10 text-white max-w-md max-h-[90vh] overflow-y-auto">
+              <DialogContent className="w-[calc(100vw-1rem)] border border-white/10 bg-[#001020] p-4 text-white shadow-2xl shadow-black/40 sm:max-w-lg sm:p-5 max-h-[92vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-bold text-white">
+                  <DialogTitle className="pr-8 text-lg font-bold text-white sm:text-xl">
                     {tpr("confirm_title")}
                   </DialogTitle>
                   <DialogDescription className="text-white/60">
@@ -751,17 +752,17 @@ export default function LotDetailPage() {
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 py-2">
+                <div className="space-y-3 py-1">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-lg border border-white/10 bg-transparent p-3">
                       <p className="text-white/60 text-xs mb-1">{tp("your_ticket")}</p>
-                      <p className="font-bold text-primary text-lg">
+                      <p className="font-bold text-primary text-base sm:text-lg">
                         {formatUsdFromCents(activePlan.ticketCents)}
                       </p>
                     </div>
                     <div className="rounded-lg border border-white/10 bg-transparent p-3">
                       <p className="text-white/60 text-xs mb-1">{tp("projected_return")}</p>
-                      <p className="font-bold text-white text-lg">
+                      <p className="font-bold text-white text-base sm:text-lg">
                         {formatUsdFromCents(activePlan.ticketCents + projections.partnerCents)}
                       </p>
                     </div>
@@ -788,9 +789,9 @@ export default function LotDetailPage() {
                   )}
 
                   {reserve.error && (
-                    <p className="text-xs text-red-400 flex items-start gap-1">
+                    <p className="flex items-start gap-1 break-words rounded-lg border border-red-400/15 bg-red-400/5 p-2 text-xs leading-relaxed text-red-300">
                       <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
-                      {reserve.error}
+                      <span className="min-w-0">{reserve.error}</span>
                     </p>
                   )}
 
@@ -802,8 +803,8 @@ export default function LotDetailPage() {
 
                   {address ? (
                     <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/5 p-3">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
+                      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                        <div className="min-w-0">
                           <p className="text-xs font-bold text-emerald-200">
                             {tp("mock_usdc_title")}
                           </p>
@@ -815,7 +816,7 @@ export default function LotDetailPage() {
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="shrink-0 border-emerald-300/25 text-emerald-200 hover:bg-emerald-300/10"
+                          className="w-full shrink-0 border-emerald-300/25 text-emerald-200 hover:bg-emerald-300/10 sm:w-auto"
                           disabled={isMintingUsdc || reserve.isLoading}
                           onClick={() => void handleMintMockUsdc()}
                         >
@@ -868,7 +869,7 @@ export default function LotDetailPage() {
                     </div>
                   ) : (
                     <Button
-                      className="bg-primary hover:bg-primary/90 text-[#001020] font-bold"
+                      className="w-full bg-primary hover:bg-primary/90 text-[#001020] font-bold sm:w-auto"
                       disabled={reserve.isLoading}
                       onClick={reserve.step === "error" ? reserve.reset : reserve.start}
                     >

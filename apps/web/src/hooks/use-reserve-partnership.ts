@@ -116,6 +116,7 @@ export function useReservePartnership(params: {
         abi: MockUSDCAbi,
         functionName: "approve",
         args: [partnershipContractAddress, ticketUsdcUnits],
+        gas: BigInt(90_000),
       });
       setTxHash(approveTx);
       const approveReceipt = await waitForTransactionReceipt(wagmiConfig, { hash: approveTx });
@@ -141,6 +142,7 @@ export function useReservePartnership(params: {
         abi: HarvversePartnershipAbi,
         functionName: "invest",
         args: [onchainPartnershipId, onchainLotId, activePlan.ticketCents],
+        gas: BigInt(300_000),
       });
       setTxHash(investTx);
       const investReceipt = await waitForTransactionReceipt(wagmiConfig, { hash: investTx });
