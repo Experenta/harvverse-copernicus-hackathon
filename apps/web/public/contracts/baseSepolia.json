@@ -3,12 +3,12 @@
   "network": "baseSepolia",
   "deployer": "0x686EE65b45Aa460CbAE7e53AAE91B481a73ed63f",
   "contracts": {
-    "mockUsdc": "0x4F1b83f99382EE10e3191f14d7e011D13DdB9E44",
-    "harvverseLot": "0xc61D150cF924054d564183B53E35f546C676A0F9",
-    "harvversePartnership": "0x4aFBB4F2737E739B833E99C7a6b3d3dEd7fbB39c",
-    "harvverseEvidence": "0x5Cfb45ed81b805063030B446515Bc240Ec32fa0e",
-    "carbonEstimateRegistry": "0xFE2fD8ae12c908902074Ed57bb76E8DBd8382919",
-    "harvverseCarbonCredit": "0xBde7B9D6DB0b71Ac8A40F2c10a84A3389B9D2F1B"
+    "mockUsdc": "0x97502EF184386dD518Cc33428dfc72c6662cD472",
+    "harvverseLot": "0x44bAbC4bB8043DD8439170AB2f50350d2d2d5aF0",
+    "harvversePartnership": "0x0a094A0810d39c0B4897FB53C2b4b042C6e8C5d8",
+    "harvverseEvidence": "0xcc3D897FF4f518Ccd83986F67b0485EBcDDc20C0",
+    "carbonEstimateRegistry": "0x8AC26ffb0a50465721B254CdD53130DcCcB079f4",
+    "harvverseCarbonCredit": "0x31D08C3F8e40673a215bc73e6b3C1125BdB3e083"
   },
   "demoPartnerWallet": "0x686EE65b45Aa460CbAE7e53AAE91B481a73ed63f"
 }

@@ -3,9 +3,9 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-/// @dev 6-decimal USDC stand-in for local/testnet use.
+/// @dev 6-decimal Harvverse test-money token for local/testnet use.
 contract MockUSDC is ERC20 {
-    constructor() ERC20("USD Coin", "USDC") {}
+    constructor() ERC20("Harvverse Test Dollar", "HVTUSD") {}
 
     function decimals() public pure override returns (uint8) {
         return 6;
