@@ -415,6 +415,10 @@ export default function EditFarmPage() {
                           className={inputClasses}
                           {...field}
                           value={typeof field.value === "number" ? field.value : ""}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            field.onChange(value === "" ? undefined : Number(value));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -435,6 +439,10 @@ export default function EditFarmPage() {
                           className={inputClasses}
                           {...field}
                           value={typeof field.value === "number" ? field.value : ""}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            field.onChange(value === "" ? undefined : Number(value));
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -528,6 +536,10 @@ export default function EditFarmPage() {
                             className={inputClasses}
                             {...field}
                             value={typeof field.value === "number" ? field.value : ""}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              field.onChange(value === "" ? undefined : Number(value));
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -548,6 +560,10 @@ export default function EditFarmPage() {
                             className={inputClasses}
                             {...field}
                             value={typeof field.value === "number" ? field.value : ""}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              field.onChange(value === "" ? undefined : Number(value));
+                            }}
                           />
                         </FormControl>
                         <FormMessage />

@@ -43,6 +43,77 @@ const PolygonDisplayMap = dynamic(() => import("@/components/polygon-display-map
   loading: () => <Skeleton className="h-[200px] w-full rounded-lg" />,
 });
 
+function LotAgronomicNotes({ lot, t }: { lot: any; t: any }) {
+  const items = [
+    lot.descriptiveName != null
+      ? { label: t("descriptive_name"), value: lot.descriptiveName }
+      : null,
+    lot.areaManzanas != null
+      ? { label: t("area_manzanas"), value: Number(lot.areaManzanas).toFixed(2) + " " + t("unit_mzn") }
+      : null,
+    lot.plantAgeYears != null
+      ? { label: t("plant_age"), value: String(lot.plantAgeYears) + " yrs" }
+      : null,
+    lot.averagePlantAgeYears != null
+      ? { label: t("average_plant_age_years"), value: String(lot.averagePlantAgeYears) + " yrs" }
+      : null,
+    lot.harvestYear != null ? { label: t("harvest_year"), value: lot.harvestYear } : null,
+    lot.numTrees != null
+      ? { label: t("num_trees"), value: lot.numTrees.toLocaleString() }
+      : null,
+    lot.processingMethod != null
+      ? { label: t("processing_method"), value: lot.processingMethod }
+      : null,
+    lot.managementType != null
+      ? { label: t("management_type"), value: lot.managementType }
+      : null,
+    lot.previousProductionQq != null
+      ? { label: t("previous_production_qq"), value: String(lot.previousProductionQq) + " qq" + (lot.productionDataYear ? " (" + lot.productionDataYear + ")" : "") }
+      : null,
+    lot.minimumPriceCentsPerLb != null
+      ? { label: t("minimum_price_cents_per_lb"), value: formatUsdFromCents(lot.minimumPriceCentsPerLb) + "/lb" }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; value: string | number }>;
+
+  const hasNotes = Boolean(lot.lotObservations || lot.cycleNotes || lot.varietiesComposition);
+  if (items.length === 0 && !hasNotes) return null;
+
+  return (
+    <GlassCard className="border-primary/20 bg-[#001020]/40 p-5 sm:p-6">
+      <h2 className="mb-4 font-trenda text-sm font-bold uppercase tracking-wider text-white">
+        {t("section_c_title")}
+      </h2>
+      {items.length > 0 ? (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4 text-sm">
+          {items.map((item) => (
+            <div key={item.label} className="min-w-0">
+              <p className="mb-1 text-[10px] uppercase tracking-wider text-white/40">{item.label}</p>
+              <p className="truncate font-bold text-white" title={String(item.value)}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {lot.varietiesComposition != null ? (
+        <div className="mt-4 border-t border-white/5 pt-4">
+          <p className="mb-1 text-[10px] uppercase tracking-wider text-white/40">{t("varieties_composition")}</p>
+          <p className="break-words text-xs font-bold text-white/80">{JSON.stringify(lot.varietiesComposition)}</p>
+        </div>
+      ) : null}
+      {lot.lotObservations ? (
+        <div className="mt-4 border-t border-white/5 pt-4">
+          <p className="mb-1 text-[10px] uppercase tracking-wider text-white/40">{t("lot_observations")}</p>
+          <p className="text-sm italic leading-relaxed text-white/75">{lot.lotObservations}</p>
+        </div>
+      ) : null}
+      {lot.cycleNotes ? (
+        <div className="mt-4 border-t border-white/5 pt-4">
+          <p className="mb-1 text-[10px] uppercase tracking-wider text-white/40">{t("cycle_notes")}</p>
+          <p className="text-sm italic leading-relaxed text-white/75">{lot.cycleNotes}</p>
+        </div>
+      ) : null}
+    </GlassCard>
+  );
+}
 function scoreTone(score: number | null | undefined) {
   if (score == null) return "border-white/10 bg-white/[0.03] text-white/45";
   if (score >= 80) return "border-emerald-400/30 bg-emerald-400/10 text-emerald-300";
@@ -203,6 +274,7 @@ export default function FarmerLotDetailPage() {
                 <div className="flex flex-col gap-4">
                   <CopernicusRiskScoreCard snapshot={parsedCopernicusSnapshot} />
                   <CopernicusSignalsGrid snapshot={parsedCopernicusSnapshot} />
+                  <LotAgronomicNotes lot={lot} t={t} />
                 </div>
                 <div className="flex flex-col gap-4">
                   <CopernicusYieldPredictCard snapshot={parsedCopernicusSnapshot} />
@@ -289,170 +361,6 @@ export default function FarmerLotDetailPage() {
         </GlassCard>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          {lot.areaManzanas != null || lot.plantAgeYears != null || lot.harvestYear != null || lot.descriptiveName != null ? (
-            <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8 space-y-8">
-            <div>
-              <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider mb-6">{t("section_c_title")}</h2>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-6 text-sm sm:grid-cols-3">
-                {lot.descriptiveName != null && (
-                  <div className="col-span-2 sm:col-span-3">
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("descriptive_name")}</p>
-                    <p className="text-white font-bold">{lot.descriptiveName}</p>
-                  </div>
-                )}
-                {lot.areaManzanas != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("area_manzanas")}</p>
-                    <p className="text-white font-bold">{Number(lot.areaManzanas).toFixed(2)} {t("unit_mzn")}</p>
-                  </div>
-                )}
-                {lot.plantAgeYears != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("plant_age")}</p>
-                    <p className="text-white font-bold">{lot.plantAgeYears} yrs</p>
-                  </div>
-                )}
-                {lot.averagePlantAgeYears != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("average_plant_age_years")}</p>
-                    <p className="text-white font-bold">{lot.averagePlantAgeYears} yrs</p>
-                  </div>
-                )}
-                {lot.harvestYear != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("harvest_year")}</p>
-                    <p className="text-white font-bold">{lot.harvestYear}</p>
-                  </div>
-                )}
-                {lot.numTrees != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("num_trees")}</p>
-                    <p className="text-white font-bold">{lot.numTrees.toLocaleString()}</p>
-                  </div>
-                )}
-                {lot.processingMethod != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("processing_method")}</p>
-                    <p className="text-white font-bold">{lot.processingMethod}</p>
-                  </div>
-                )}
-                {lot.varietiesComposition != null && (
-                  <div className="col-span-2 sm:col-span-3">
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("varieties_composition")}</p>
-                    <p className="text-white font-bold text-xs">{JSON.stringify(lot.varietiesComposition)}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {(lot.renovationInProgress || lot.newVariety || lot.renovationPercent) && (
-              <div>
-                <h2 className="font-trenda text-xs font-bold text-white/50 uppercase tracking-widest mb-4">Renovation Status</h2>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-6 text-sm">
-                  {lot.renovationInProgress != null && (
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("renovation_in_progress")}</p>
-                      <p className="text-white font-bold">{lot.renovationInProgress ? "Yes" : "No"}</p>
-                    </div>
-                  )}
-                  {lot.newVariety != null && (
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("new_variety")}</p>
-                      <p className="text-white font-bold">{lot.newVariety}</p>
-                    </div>
-                  )}
-                  {lot.renovationPercent != null && (
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("renovation_percent")}</p>
-                      <p className="text-white font-bold">{lot.renovationPercent}%</p>
-                    </div>
-                  )}
-                  {lot.renovationStartYear != null && (
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("renovation_start_year")}</p>
-                      <p className="text-white font-bold">{lot.renovationStartYear}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div>
-              <h2 className="font-trenda text-xs font-bold text-white/50 uppercase tracking-widest mb-4">Management & Production</h2>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-6 text-sm">
-                {lot.managementType != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("management_type")}</p>
-                    <p className="text-white font-bold">{lot.managementType}</p>
-                  </div>
-                )}
-                {lot.previousProductionQq != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("previous_production_qq")}</p>
-                    <p className="text-white font-bold">{lot.previousProductionQq} qq ({lot.productionDataYear})</p>
-                  </div>
-                )}
-                {lot.rustLastCycle != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("rust_last_cycle")}</p>
-                    <p className="text-white font-bold">{lot.rustLastCycle}</p>
-                  </div>
-                )}
-                {lot.borerLastCycle != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("borer_last_cycle")}</p>
-                    <p className="text-white font-bold">{lot.borerLastCycle}</p>
-                  </div>
-                )}
-                {lot.fertilizedLastCycle != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("fertilized_last_cycle")}</p>
-                    <p className="text-white font-bold">{lot.fertilizedLastCycle ? "Yes" : "No"}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h2 className="font-trenda text-xs font-bold text-white/50 uppercase tracking-widest mb-4">Business & Investment</h2>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-6 text-sm">
-                {lot.availableForCoinvestment != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("available_for_coinvestment")}</p>
-                    <p className="text-white font-bold">{lot.availableForCoinvestment ? "Yes" : "No"}</p>
-                  </div>
-                )}
-                {lot.acceptsSplit6040 != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("accepts_split_6040")}</p>
-                    <p className="text-white font-bold">{lot.acceptsSplit6040 ? "Yes" : "No"}</p>
-                  </div>
-                )}
-                {lot.minimumPriceCentsPerLb != null && (
-                  <div>
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{t("minimum_price_cents_per_lb")}</p>
-                    <p className="text-white font-bold">{formatUsdFromCents(lot.minimumPriceCentsPerLb)}/lb</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {lot.lotObservations && (
-              <div className="mt-6 pt-6 border-t border-white/5">
-                <p className="text-white/40 text-[10px] uppercase tracking-wider mb-2">{t("lot_observations")}</p>
-                <p className="text-white/80 text-sm whitespace-pre-line leading-relaxed italic">{lot.lotObservations}</p>
-              </div>
-            )}
-
-            {lot.cycleNotes && (
-              <div className="mt-6 pt-6 border-t border-white/5">
-                <p className="text-white/40 text-[10px] uppercase tracking-wider mb-2">{t("cycle_notes")}</p>
-                <p className="text-white/80 text-sm whitespace-pre-line leading-relaxed italic">{lot.cycleNotes}</p>
-              </div>
-            )}
-            </GlassCard>
-          ) : null}
-
           {activePlan && (() => {
           const farmerSharePct = (activePlan.splitFarmerBps ?? 0) / 100;
           const partnerSharePct = (activePlan.splitPartnerBps ?? 0) / 100;
@@ -601,13 +509,13 @@ export default function FarmerLotDetailPage() {
                 </div>
                 <p className="text-[10px] text-white/30 mt-4 italic text-center">{tLF("earnings_note")}</p>
               </GlassCard>
-              <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8 xl:col-span-2">
+              <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8 xl:col-span-1">
                 <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider mb-2">
                   {tLF("projection_table_title")}
                 </h2>
                 <p className="mb-5 text-xs leading-5 text-white/50">{tLF("projection_table_note")}</p>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[620px] text-left text-sm">
+                  <table className="w-full min-w-[560px] text-left text-sm">
                     <thead className="border-b border-white/10 text-[10px] uppercase tracking-wider text-white/40">
                       <tr>
                         <th className="py-2 pr-4">{tLF("projection_col_year")}</th>
