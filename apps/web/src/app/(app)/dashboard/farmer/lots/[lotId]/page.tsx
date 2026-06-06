@@ -26,7 +26,7 @@ import {
   TooltipTrigger,
 } from "@harvverse-copernicus-hackathon/ui/components/tooltip";
 
-import { computeEarnings, formatUsdFromCents, formatUsdPrecise, formatUsd } from "@/lib/format";
+import { COFFEE_LBS_PER_QQ, computeEarnings, formatUsdFromCents, formatUsdPrecise, formatUsd } from "@/lib/format";
 import { farmBoundaryForLotMap } from "@/lib/geo-polygon";
 import { getSnapshotChain, isCurrentDeploymentProof } from "@/lib/chainProof";
 import { parseCopernicusSnapshot } from "@/lib/copernicus-snapshot";
@@ -456,16 +456,53 @@ export default function FarmerLotDetailPage() {
           {activePlan && (() => {
           const farmerSharePct = (activePlan.splitFarmerBps ?? 0) / 100;
           const partnerSharePct = (activePlan.splitPartnerBps ?? 0) / 100;
+          const projectedY1Qq = (activePlan.projectedYieldY1TenthsQq ?? 0) / 10;
+          const matureYieldQq =
+            parsedCopernicusSnapshot?.yieldPredict.projectedQuintales ??
+            (activePlan.yieldCapY1TenthsQq ?? activePlan.projectedYieldY1TenthsQq ?? 0) / 10;
+          const priceCentsPerLb =
+            activePlan.priceFloorCentsPerLb != null
+              ? Math.round(((activePlan.priceCentsPerLb ?? 0) + activePlan.priceFloorCentsPerLb) / 2)
+              : activePlan.priceCentsPerLb ?? 0;
+          const pricePerLbUsd = priceCentsPerLb / 100;
+          const agronomicCostUsd = (activePlan.agronomicCostCents ?? 0) / 100;
           const earnings = computeEarnings({
-            projectedYieldQq: (activePlan.projectedYieldY1TenthsQq ?? 0) / 10,
-            pricePerLbUsd: (activePlan.priceCentsPerLb ?? 0) / 100,
-            agronomicCostUsd: (activePlan.agronomicCostCents ?? 0) / 100,
+            projectedYieldQq: projectedY1Qq,
+            pricePerLbUsd,
+            agronomicCostUsd,
             farmerSharePct,
+          });
+          const yearProjectionRows = [
+            { key: "year1", year: tLF("projection_year_1"), factor: 0.27 },
+            { key: "year2", year: tLF("projection_year_2"), factor: 0.54 },
+            { key: "year3", year: tLF("projection_year_3"), factor: 0.81 },
+            { key: "year4", year: tLF("projection_year_4"), factor: 1 },
+          ].map((row) => {
+            const qq = matureYieldQq * row.factor;
+            const grossUsd = qq * COFFEE_LBS_PER_QQ * pricePerLbUsd;
+            const netUsd = grossUsd - agronomicCostUsd;
+            const partnerUsd = netUsd * (partnerSharePct / 100);
+            const returnUsd = (activePlan.ticketCents ?? 0) / 100 + partnerUsd;
+            return { ...row, qq, netUsd, partnerUsd, returnUsd };
           });
           return (
             <>
               <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8">
                 <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider mb-6">{tLF("terms_title")}</h2>
+                <div className="mb-6 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">
+                      {tLF("yield_y1_establishment")}
+                    </p>
+                    <p className="text-white font-black text-xl">{projectedY1Qq.toFixed(1)} qq</p>
+                  </div>
+                  <div className="rounded-lg border border-primary/25 bg-primary/10 p-3">
+                    <p className="text-primary text-[10px] uppercase tracking-wider mb-1">
+                      {tLF("yield_mature_potential")}
+                    </p>
+                    <p className="text-primary font-black text-xl">{matureYieldQq.toFixed(1)} qq</p>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-6 text-sm sm:grid-cols-3">
                   <div>
                     <p className="text-white/40 text-[10px] uppercase tracking-wider mb-1">{tLF("terms_ticket")}</p>
@@ -544,12 +581,12 @@ export default function FarmerLotDetailPage() {
                   <p className="text-[10px] text-white/30 italic px-1">
                     {tLF("gross_income_line", {
                       value: ((activePlan.projectedYieldY1TenthsQq ?? 0) / 10).toFixed(1),
-                      price: formatUsdPrecise((activePlan.priceCentsPerLb ?? 0) / 100).replace("$", ""),
+                      price: formatUsdPrecise(pricePerLbUsd).replace("$", ""),
                     })}
                   </p>
                   <div className="flex justify-between items-center bg-white/5 p-3 rounded-lg border border-white/5">
                     <span className="text-white/50 text-xs uppercase tracking-wider">{tLF("earnings_agro_cost")}</span>
-                    <span className="text-red-400 font-bold">−{formatUsd((activePlan.agronomicCostCents ?? 0) / 100)}</span>
+                    <span className="text-red-400 font-bold">−{formatUsd(agronomicCostUsd)}</span>
                   </div>
                   <div className="flex justify-between items-center border-t border-white/5 pt-4">
                     <span className="text-white/50 text-xs uppercase tracking-wider">{tLF("earnings_net_profit")}</span>
@@ -563,6 +600,36 @@ export default function FarmerLotDetailPage() {
                   </div>
                 </div>
                 <p className="text-[10px] text-white/30 mt-4 italic text-center">{tLF("earnings_note")}</p>
+              </GlassCard>
+              <GlassCard className="border-primary/20 bg-[#001020]/40 p-6 sm:p-8 xl:col-span-2">
+                <h2 className="font-trenda text-base font-bold text-white uppercase tracking-wider mb-2">
+                  {tLF("projection_table_title")}
+                </h2>
+                <p className="mb-5 text-xs leading-5 text-white/50">{tLF("projection_table_note")}</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[620px] text-left text-sm">
+                    <thead className="border-b border-white/10 text-[10px] uppercase tracking-wider text-white/40">
+                      <tr>
+                        <th className="py-2 pr-4">{tLF("projection_col_year")}</th>
+                        <th className="py-2 pr-4">{tLF("projection_col_qq")}</th>
+                        <th className="py-2 pr-4">{tLF("projection_col_net")}</th>
+                        <th className="py-2 pr-4">{tLF("projection_col_partner")}</th>
+                        <th className="py-2 text-right">{tLF("projection_col_return")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {yearProjectionRows.map((row) => (
+                        <tr key={row.key} className={row.key === "year1" ? "text-primary" : "text-white/80"}>
+                          <td className="py-3 pr-4 font-bold">{row.year}</td>
+                          <td className="py-3 pr-4">{row.qq.toFixed(1)} qq</td>
+                          <td className="py-3 pr-4">{formatUsd(row.netUsd)}</td>
+                          <td className="py-3 pr-4">{formatUsd(row.partnerUsd)}</td>
+                          <td className="py-3 text-right font-bold">{formatUsd(row.returnUsd)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </GlassCard>
             </>
           );

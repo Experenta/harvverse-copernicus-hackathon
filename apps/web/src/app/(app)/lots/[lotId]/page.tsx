@@ -42,7 +42,7 @@ import {
 import { useAccount, useChainId, useConnect, useWriteContract } from "wagmi";
 import { MockUSDCAbi } from "@harvverse-copernicus-hackathon/contracts";
 
-import { formatUsdFromCents } from "@/lib/format";
+import { COFFEE_LBS_PER_QQ, formatUsdFromCents } from "@/lib/format";
 import { getSnapshotChain, isCurrentDeploymentProof } from "@/lib/chainProof";
 import { CopernicusPartnerPanel } from "@/components/copernicus/copernicus-partner-panel";
 import { useCurrentUser } from "@/hooks/use-auth";
@@ -61,6 +61,7 @@ const PolygonDisplayMap = dynamic(() => import("@/components/polygon-display-map
 function computeProjections(plan: {
   projectedYieldY1TenthsQq: number;
   priceCentsPerLb: number;
+  priceFloorCentsPerLb: number | null;
   agronomicCostCents: number;
   contingencyCents: number | null;
   platformFeeCents: number | null;
@@ -68,11 +69,12 @@ function computeProjections(plan: {
   splitPartnerBps: number | null;
 }) {
   const yieldQq = plan.projectedYieldY1TenthsQq / 10;
-  const revenueCents = Math.round(yieldQq * 100 * plan.priceCentsPerLb);
-  const costCents =
-    plan.agronomicCostCents +
-    (plan.contingencyCents ?? 0) +
-    (plan.platformFeeCents ?? 0);
+  const priceCentsPerLb =
+    plan.priceFloorCentsPerLb != null
+      ? Math.round((plan.priceCentsPerLb + plan.priceFloorCentsPerLb) / 2)
+      : plan.priceCentsPerLb;
+  const revenueCents = Math.round(yieldQq * COFFEE_LBS_PER_QQ * priceCentsPerLb);
+  const costCents = plan.agronomicCostCents;
   const profitCents = Math.max(0, revenueCents - costCents);
   const farmerCents = Math.round((profitCents * plan.splitFarmerBps) / 10000);
   const partnerCents = plan.splitPartnerBps

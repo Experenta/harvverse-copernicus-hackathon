@@ -58,19 +58,14 @@ export default function PolygonDisplayMap({
   className,
   color = "#93d832",
   fillOpacity = 0.3,
-  mapLabel,
   invalidPolygonMessage,
   tileErrorMessage,
   contextPolygon,
   contextColor = "#4a9eff",
-  contextLabel,
 }: Props) {
   const t = useTranslations("polygon");
-  const resolvedMapLabel = mapLabel ?? t("map_label_satellite");
   const resolvedInvalid = invalidPolygonMessage ?? t("invalid_polygon_map");
   const resolvedTileError = tileErrorMessage ?? t("tile_error_map");
-  const resolvedContextLabel =
-    contextLabel ?? (contextPolygon ? t("farm_boundary_context") : undefined);
 
   const outerRing = polygon.coordinates[0] ?? [];
   const positions = useMemo(() => geoToLeaflet(outerRing), [outerRing]);
@@ -146,16 +141,6 @@ export default function PolygonDisplayMap({
         />
         <FitBounds allRings={fitRings} />
       </MapContainer>
-      <div className="pointer-events-none absolute left-4 top-4 z-[500] flex flex-col gap-2">
-        <div className="rounded-full border border-cyan-300/30 bg-[#001120]/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-cyan-100 shadow-lg backdrop-blur">
-          {resolvedMapLabel}
-        </div>
-        {contextPositions && resolvedContextLabel ? (
-          <div className="rounded-full border border-sky-400/30 bg-[#001120]/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-200/90 shadow-lg backdrop-blur">
-            {resolvedContextLabel}
-          </div>
-        ) : null}
-      </div>
       {tileError ? (
         <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-[500] rounded-lg border border-yellow-300/25 bg-[#001120]/85 px-3 py-2 text-xs leading-5 text-yellow-100/80 shadow-lg backdrop-blur">
           {resolvedTileError}
