@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { Route } from "next";
 import { useRouter, useParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -170,6 +170,8 @@ export default function EditFarmPage() {
     }),
   );
 
+  const resetFarmIdRef = useRef<number | null>(null);
+
   const form = useForm<EditFarmInput, unknown, EditFarmValues>({
     resolver: zodResolver(editFarmSchema),
     defaultValues: {
@@ -193,7 +195,8 @@ export default function EditFarmPage() {
   });
 
   useEffect(() => {
-    if (!farm) return;
+    if (!farm || resetFarmIdRef.current === farm.id) return;
+    resetFarmIdRef.current = farm.id;
     form.reset({
       name: farm.name,
       farmCode: farm.farmCode ?? "",
@@ -212,7 +215,7 @@ export default function EditFarmPage() {
       previousTotalProductionQq: farm.previousTotalProductionQq ? Number(farm.previousTotalProductionQq) : undefined,
       productionDataYear: farm.productionDataYear ?? undefined,
     });
-  }, [farm]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [farm, form]);
 
   function onSubmit(values: EditFarmValues) {
     updateFarm.mutate({

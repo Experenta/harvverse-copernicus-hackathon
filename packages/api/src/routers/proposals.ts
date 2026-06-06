@@ -1,6 +1,8 @@
+import type { Db } from "@harvverse-copernicus-hackathon/db";
 import {
   insertProposalSchema,
   lots,
+  partnerships,
   proposalStatusEnum,
   proposals,
   users,
@@ -16,6 +18,24 @@ const proposalCreateSchema = insertProposalSchema
   .omit({ userId: true })
   .extend({ expiresAt: z.coerce.date() })
   .extend({ walletAddress: z.string().optional().default("") });
+
+async function hideConvertedProposals<T extends { id: number }>(
+  db: Db,
+  proposalRows: T[],
+) {
+  const proposalIds = proposalRows.map((proposal) => proposal.id);
+  if (proposalIds.length === 0) return proposalRows;
+
+  const convertedRows = await db.query.partnerships.findMany({
+    where: inArray(partnerships.proposalId, proposalIds),
+    columns: { proposalId: true },
+  });
+  const convertedProposalIds = new Set(
+    convertedRows.map((partnership) => partnership.proposalId),
+  );
+
+  return proposalRows.filter((proposal) => !convertedProposalIds.has(proposal.id));
+}
 
 export const proposalsRouter = router({
   create: protectedProcedure
@@ -96,18 +116,20 @@ export const proposalsRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "You can only view your own proposals" });
       }
       if (input.clerkId || !input.walletAddress) {
-        return ctx.db.query.proposals.findMany({
+        const rows = await ctx.db.query.proposals.findMany({
           where: eq(proposals.userId, user.id),
           orderBy: [desc(proposals.createdAt)],
           with: { lot: true, plan: true },
         });
+        return hideConvertedProposals(ctx.db, rows);
       }
       if (input.walletAddress) {
-        return ctx.db.query.proposals.findMany({
+        const rows = await ctx.db.query.proposals.findMany({
           where: eq(proposals.walletAddress, input.walletAddress),
           orderBy: [desc(proposals.createdAt)],
           with: { lot: true, plan: true },
         });
+        return hideConvertedProposals(ctx.db, rows);
       }
       return [];
     }),
@@ -171,11 +193,12 @@ export const proposalsRouter = router({
     if (!farmer) return [];
     const farmerLotIds = farmer.farms.flatMap((f) => f.lots.map((l) => l.id));
     if (farmerLotIds.length === 0) return [];
-    return ctx.db.query.proposals.findMany({
+    const rows = await ctx.db.query.proposals.findMany({
       where: inArray(proposals.lotId, farmerLotIds),
       orderBy: [desc(proposals.createdAt)],
       with: { lot: true, plan: true, user: true },
     });
+    return hideConvertedProposals(ctx.db, rows);
   }),
 
   // Farmer approves a proposal: sets proposal → signed, lot → reserved, rejects others
