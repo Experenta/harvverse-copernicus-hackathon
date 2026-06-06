@@ -69,7 +69,6 @@ export function useReservePartnership(params: {
   const createProposal = useMutation(trpc.proposals.create.mutationOptions());
   const updateProposal = useMutation(trpc.proposals.updateStatus.mutationOptions());
   const createPartnership = useMutation(trpc.partnerships.create.mutationOptions());
-  const updateLotStatus = useMutation(trpc.lots.updateStatus.mutationOptions());
 
   const usdcAddress = process.env.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}` | undefined;
   const partnershipContractAddress = process.env.NEXT_PUBLIC_PARTNERSHIP_ADDRESS as `0x${string}` | undefined;
@@ -201,13 +200,11 @@ export function useReservePartnership(params: {
         planId: activePlan.id,
         partnerUserId: user.id,
         partnerWallet: effectiveWallet,
-        farmerWallet: lot.farmerWallet,
+        farmerWallet: lot.farmerWallet || effectiveWallet,
         status: "active",
         chainKey,
         openedTxHash: investTx,
       });
-
-      await updateLotStatus.mutateAsync({ id: lot.id, status: "reserved" });
 
       await Promise.all([
         queryClient.invalidateQueries({
@@ -251,7 +248,6 @@ export function useReservePartnership(params: {
     createProposal,
     updateProposal,
     createPartnership,
-    updateLotStatus,
   ]);
 
   const reset = useCallback(() => {

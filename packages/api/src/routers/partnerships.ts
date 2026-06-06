@@ -1,12 +1,13 @@
 import {
   insertPartnershipSchema,
+  lots,
   partnershipStatusEnum,
   partnerships,
   proposals,
   users,
 } from "@harvverse-copernicus-hackathon/db/schema";
 import { TRPCError } from "@trpc/server";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { protectedProcedure, router } from "../index";
@@ -26,6 +27,7 @@ export const partnershipsRouter = router({
 
       const proposal = await ctx.db.query.proposals.findFirst({
         where: eq(proposals.id, input.proposalId),
+        with: { lot: true },
       });
       if (!proposal) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Proposal not found" });
@@ -37,17 +39,69 @@ export const partnershipsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Partnership does not match proposal" });
       }
 
-      const [partnership] = await ctx.db
-        .insert(partnerships)
-        .values({ ...input, partnerUserId: requestingUser.id })
-        .returning();
-      if (!partnership) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create partnership",
-        });
-      }
-      return partnership;
+      const farmerWallet =
+        input.farmerWallet?.trim() ||
+        proposal.lot?.farmerWallet?.trim() ||
+        input.partnerWallet;
+
+      return ctx.db.transaction(async (tx) => {
+        const existingPartnership =
+          (await tx.query.partnerships.findFirst({
+            where: eq(partnerships.proposalId, input.proposalId),
+          })) ??
+          (await tx.query.partnerships.findFirst({
+            where: and(
+              eq(partnerships.lotId, input.lotId),
+              eq(partnerships.partnerUserId, requestingUser.id),
+            ),
+          }));
+
+        if (existingPartnership) {
+          const [updated] = await tx
+            .update(partnerships)
+            .set({
+              status: input.status,
+              chainKey: input.chainKey,
+              openedTxHash: input.openedTxHash,
+              partnerWallet: input.partnerWallet,
+              farmerWallet,
+              updatedAt: new Date(),
+            })
+            .where(eq(partnerships.id, existingPartnership.id))
+            .returning();
+
+          await tx
+            .update(lots)
+            .set({ status: "reserved", updatedAt: new Date() })
+            .where(eq(lots.id, input.lotId));
+
+          if (!updated) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to update partnership",
+            });
+          }
+          return updated;
+        }
+
+        const [partnership] = await tx
+          .insert(partnerships)
+          .values({ ...input, farmerWallet, partnerUserId: requestingUser.id })
+          .returning();
+
+        await tx
+          .update(lots)
+          .set({ status: "reserved", updatedAt: new Date() })
+          .where(eq(lots.id, input.lotId));
+
+        if (!partnership) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create partnership",
+          });
+        }
+        return partnership;
+      });
     }),
 
   byId: protectedProcedure
