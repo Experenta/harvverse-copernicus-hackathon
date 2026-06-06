@@ -43,7 +43,7 @@ import { useAccount, useChainId, useConnect, useWriteContract } from "wagmi";
 import { MockUSDCAbi } from "@harvverse-copernicus-hackathon/contracts";
 
 import { formatUsdFromCents } from "@/lib/format";
-import { getSnapshotChain } from "@/lib/chainProof";
+import { getSnapshotChain, isCurrentDeploymentProof } from "@/lib/chainProof";
 import { CopernicusPartnerPanel } from "@/components/copernicus/copernicus-partner-panel";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { farmBoundaryForLotMap } from "@/lib/geo-polygon";
@@ -184,7 +184,7 @@ export default function LotDetailPage() {
   const copernicusSnapshot = lot?.copernicusSnapshot ?? null;
   const copernicusEligible = copernicusSnapshot?.eligibleForInvestment === true;
   const chainProof = getSnapshotChain(copernicusSnapshot);
-  const localProofWritten = chainProof.metadataStatus === "written";
+  const localProofWritten = isCurrentDeploymentProof(chainProof);
   const canWriteLocalProof = user?.role === "farmer" || user?.role === "admin";
   const markLocalProof = useMutation(
     trpc.lots.markLocalCopernicusProof.mutationOptions({
@@ -206,6 +206,7 @@ export default function LotDetailPage() {
     lot: lot ?? null,
     activePlan: activePlan ?? null,
     projections,
+    chainProofReady: localProofWritten,
     existingProposalId: lotProposal?.status === "signed" ? lotProposal.id : null,
   });
 
@@ -352,6 +353,15 @@ export default function LotDetailPage() {
         <Button className="bg-red-500/15 border border-red-500/30 text-red-300 font-bold py-6 px-8 cursor-default" disabled>
           {blockedByEudr ? <Ban className="w-5 h-5 mr-2" /> : <ShieldCheck className="w-5 h-5 mr-2" />}
           {copernicusSnapshot ? t("satellite_pending_title") : t("satellite_pending_title")}
+        </Button>
+      );
+    }
+
+    if (!localProofWritten) {
+      return (
+        <Button className="bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 font-bold py-6 px-8 cursor-default" disabled>
+          <ShieldCheck className="w-5 h-5 mr-2" />
+          {t("generate_local_proof")}
         </Button>
       );
     }

@@ -1,5 +1,6 @@
 export type SnapshotChainProof = {
   chainId: number;
+  contractAddress: string | null;
   metadataStatus: "pending" | "written";
   transactionHash: string | null;
   carbonRegistry: {
@@ -26,6 +27,8 @@ export function getSnapshotChain(
 
   return {
     chainId: typeof chain?.chainId === "number" ? chain.chainId : 31337,
+    contractAddress:
+      typeof chain?.contractAddress === "string" ? chain.contractAddress : null,
     metadataStatus: chain?.metadataStatus === "written" ? "written" : "pending",
     transactionHash:
       typeof chain?.transactionHash === "string" ? chain.transactionHash : null,
@@ -56,6 +59,19 @@ export function chainLabel(chainId: number) {
   if (chainId === 31337) return "Hardhat local";
   if (chainId === 84532) return "Base Sepolia";
   return `Chain ${chainId}`;
+}
+
+export function isCurrentDeploymentProof(
+  proof: SnapshotChainProof,
+  expectedChainId = process.env.NEXT_PUBLIC_USE_LOCAL_CONTRACTS === "true"
+    ? Number(process.env.NEXT_PUBLIC_HARDHAT_CHAIN_ID ?? 31337)
+    : 84532,
+  expectedContractAddress = process.env.NEXT_PUBLIC_LOT_ADDRESS,
+) {
+  if (proof.metadataStatus !== "written") return false;
+  if (proof.chainId !== expectedChainId) return false;
+  if (!expectedContractAddress) return true;
+  return proof.contractAddress?.toLowerCase() === expectedContractAddress.toLowerCase();
 }
 
 export function transactionExplorerUrl(chainId: number, txHash: string | null | undefined) {

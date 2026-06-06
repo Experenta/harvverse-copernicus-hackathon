@@ -28,7 +28,7 @@ import {
 
 import { computeEarnings, formatUsdFromCents, formatUsdPrecise, formatUsd } from "@/lib/format";
 import { farmBoundaryForLotMap } from "@/lib/geo-polygon";
-import { getSnapshotChain } from "@/lib/chainProof";
+import { getSnapshotChain, isCurrentDeploymentProof } from "@/lib/chainProof";
 import { parseCopernicusSnapshot } from "@/lib/copernicus-snapshot";
 import { CopernicusCarbonCaptureCard } from "@/components/copernicus/copernicus-carbon-capture-card";
 import { CopernicusFarmerStatusCard } from "@/components/copernicus/copernicus-farmer-status-card";
@@ -113,7 +113,7 @@ export default function FarmerLotDetailPage() {
   const copernicusSnapshot = lot.copernicusSnapshot ?? null;
   const parsedCopernicusSnapshot = parseCopernicusSnapshot(copernicusSnapshot);
   const chainProof = getSnapshotChain(copernicusSnapshot);
-  const localProofWritten = chainProof.metadataStatus === "written";
+  const localProofWritten = isCurrentDeploymentProof(chainProof);
 
   return (
     <div className="mx-auto max-w-6xl px-4 md:px-0 text-[#EEEEEE]">

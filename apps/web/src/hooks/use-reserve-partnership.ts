@@ -51,10 +51,11 @@ export function useReservePartnership(params: {
   lot: LotRef | null;
   activePlan: PlanRef | null;
   projections: Projections | null;
+  chainProofReady?: boolean;
   /** When provided, skips proposal creation and confirms an existing approved proposal */
   existingProposalId?: number | null;
 }) {
-  const { lot, activePlan, projections, existingProposalId } = params;
+  const { lot, activePlan, projections, chainProofReady = true, existingProposalId } = params;
   const { address } = useAccount();
   const chainId = useChainId();
   const { data: user, clerkUser } = useCurrentUser();
@@ -99,6 +100,11 @@ export function useReservePartnership(params: {
     }
     if (chainId !== expectedChainId) {
       setError(`Switch MetaMask to ${expectedNetwork} before confirming the investment.`);
+      setStep("error");
+      return;
+    }
+    if (!chainProofReady) {
+      setError("Write the Copernicus proof to the current Base Sepolia contracts before confirming the investment.");
       setStep("error");
       return;
     }
@@ -236,6 +242,7 @@ export function useReservePartnership(params: {
     usdcAddress,
     partnershipContractAddress,
     effectiveWallet,
+    chainProofReady,
     chainId,
     expectedChainId,
     expectedNetwork,
