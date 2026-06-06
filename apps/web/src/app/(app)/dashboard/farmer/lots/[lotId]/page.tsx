@@ -114,6 +114,29 @@ function LotAgronomicNotes({ lot, t }: { lot: any; t: any }) {
     </GlassCard>
   );
 }
+function maturityFactorForAge(ageYears: number | null | undefined) {
+  if (ageYears == null || ageYears < 0) return 1;
+  if (ageYears < 2) return 0;
+  if (ageYears < 3) return 0.2;
+  if (ageYears < 4) return 0.5;
+  if (ageYears < 5) return 0.8;
+  if (ageYears < 6) return 0.95;
+  if (ageYears <= 15) return 1;
+  if (ageYears <= 20) return 1 - ((ageYears - 16) / 4) * 0.25;
+  return 0.65;
+}
+
+function maturePotentialFromSnapshot(
+  snapshot: ReturnType<typeof parseCopernicusSnapshot>,
+  fallbackQq: number,
+) {
+  const currentQq = snapshot?.yieldPredict.projectedQuintales;
+  const maturityFactor = snapshot?.yieldPredict.maturityFactor;
+  if (currentQq != null && maturityFactor != null && maturityFactor > 0) {
+    return Number((currentQq / maturityFactor).toFixed(1));
+  }
+  return fallbackQq;
+}
 function scoreTone(score: number | null | undefined) {
   if (score == null) return "border-white/10 bg-white/[0.03] text-white/45";
   if (score >= 80) return "border-emerald-400/30 bg-emerald-400/10 text-emerald-300";
@@ -192,9 +215,10 @@ export default function FarmerLotDetailPage() {
     const farmerSharePct = (activePlan.splitFarmerBps ?? 0) / 100;
     const partnerSharePct = (activePlan.splitPartnerBps ?? 0) / 100;
     const projectedY1Qq = (activePlan.projectedYieldY1TenthsQq ?? 0) / 10;
-    const matureYieldQq =
-      parsedCopernicusSnapshot?.yieldPredict.projectedQuintales ??
-      (activePlan.yieldCapY1TenthsQq ?? activePlan.projectedYieldY1TenthsQq ?? 0) / 10;
+    const matureYieldQq = maturePotentialFromSnapshot(
+      parsedCopernicusSnapshot,
+      (activePlan.yieldCapY1TenthsQq ?? activePlan.projectedYieldY1TenthsQq ?? 0) / 10,
+    );
 
     return (
       <GlassCard className="border-primary/20 bg-[#001020]/40 p-5 sm:p-6">
@@ -466,9 +490,15 @@ export default function FarmerLotDetailPage() {
           const farmerSharePct = (activePlan.splitFarmerBps ?? 0) / 100;
           const partnerSharePct = (activePlan.splitPartnerBps ?? 0) / 100;
           const projectedY1Qq = (activePlan.projectedYieldY1TenthsQq ?? 0) / 10;
-          const matureYieldQq =
-            parsedCopernicusSnapshot?.yieldPredict.projectedQuintales ??
-            (activePlan.yieldCapY1TenthsQq ?? activePlan.projectedYieldY1TenthsQq ?? 0) / 10;
+          const matureYieldQq = maturePotentialFromSnapshot(
+            parsedCopernicusSnapshot,
+            (activePlan.yieldCapY1TenthsQq ?? activePlan.projectedYieldY1TenthsQq ?? 0) / 10,
+          );
+          const currentAgeYears =
+            parsedCopernicusSnapshot?.yieldPredict.plantAgeYears ??
+            lot.plantAgeYears ??
+            lot.averagePlantAgeYears ??
+            null;
           const priceCentsPerLb =
             activePlan.priceFloorCentsPerLb != null
               ? Math.round(((activePlan.priceCentsPerLb ?? 0) + activePlan.priceFloorCentsPerLb) / 2)
@@ -482,12 +512,15 @@ export default function FarmerLotDetailPage() {
             farmerSharePct,
           });
           const yearProjectionRows = [
-            { key: "year1", year: tLF("projection_year_1"), factor: 0.27 },
-            { key: "year2", year: tLF("projection_year_2"), factor: 0.54 },
-            { key: "year3", year: tLF("projection_year_3"), factor: 0.81 },
-            { key: "year4", year: tLF("projection_year_4"), factor: 1 },
+            { key: "year1", year: tLF("projection_year_1"), yearsAhead: 0 },
+            { key: "year2", year: tLF("projection_year_2"), yearsAhead: 1 },
+            { key: "year3", year: tLF("projection_year_3"), yearsAhead: 2 },
+            { key: "year4", year: tLF("projection_year_4"), yearsAhead: 3 },
           ].map((row) => {
-            const qq = matureYieldQq * row.factor;
+            const factor = maturityFactorForAge(
+              currentAgeYears == null ? null : currentAgeYears + row.yearsAhead,
+            );
+            const qq = row.key === "year1" ? projectedY1Qq : matureYieldQq * factor;
             const grossUsd = qq * COFFEE_LBS_PER_QQ * pricePerLbUsd;
             const netUsd = grossUsd - agronomicCostUsd;
             const partnerUsd = netUsd * (partnerSharePct / 100);

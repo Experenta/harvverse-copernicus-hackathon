@@ -92,6 +92,8 @@ export type CopernicusSnapshotView = {
     varietyKey?: string;
     altitudeBand?: string;
     ndviModifier?: number;
+    maturityFactor?: number;
+    plantAgeYears?: number | null;
     densityModifier?: number;
   };
   carbonCapture: {
@@ -313,6 +315,8 @@ export function parseCopernicusSnapshot(value: unknown): CopernicusSnapshotView 
       varietyKey: yieldRecord?.varietyKey == null ? undefined : String(yieldRecord.varietyKey),
       altitudeBand: yieldRecord?.altitudeBand == null ? undefined : String(yieldRecord.altitudeBand),
       ndviModifier: nullableNumber(yieldRecord?.ndviModifier) ?? undefined,
+      maturityFactor: nullableNumber(yieldRecord?.maturityFactor) ?? undefined,
+      plantAgeYears: nullableNumber(yieldRecord?.plantAgeYears),
       densityModifier: nullableNumber(yieldRecord?.densityModifier) ?? undefined,
     },
     carbonCapture,
